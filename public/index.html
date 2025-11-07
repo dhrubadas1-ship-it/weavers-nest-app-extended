@@ -1,173 +1,618 @@
+# public/index.html
+
+```html
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Weavers Nest • Sonitpur, Assam</title>
-
-  <!-- Base styles (your existing CSS still loads) -->
-  <link rel="stylesheet" href="/styles.css" />
-
-  <!-- Calendar + PDF (CDN) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
-  <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
-  <!-- Minimal tweaks so hero/gallery/logos look great on dark -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weavers Nest – Community Eco Tours</title>
+  <meta name="description" content="Village tours, traditional elephant watch tower, forest tracking, community experiences." />
+  <link rel="preload" href="/images/hero.jpg" as="image" />
   <style>
-    .hero img{height:340px;object-fit:cover;filter:contrast(1.05) saturate(1.05)}
-    .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55))}
-    .hero-text{position:absolute;left:16px;bottom:16px;background:rgba(0,0,0,.35);padding:12px 14px;border-radius:12px;backdrop-filter:blur(4px)}
-    .gallery{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-    .gallery img{width:100%;height:180px;object-fit:cover;border-radius:12px;border:1px solid #23232a}
-    .sponsors img{width:100%;height:80px;object-fit:contain;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px}
-    .row input[type="file"]{background:#0f1115;color:#fff;border:1px solid #23232a;border-radius:10px;padding:6px}
+    :root{
+      --brand:#0b7b6f; --dark:#0f172a; --light:#f8fafc; --muted:#64748b; --accent:#ffc857;
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Sans",sans-serif;color:var(--dark);background:var(--light)}
+
+    /* --- HERO --- */
+    .hero{position:relative;height:100svh;min-height:520px;width:100%;overflow:hidden}
+    .hero::before{ /* background image that always covers */
+      content:"";position:absolute;inset:0;background:url('/images/hero.jpg') center center / cover no-repeat fixed;filter:brightness(0.72);
+      transform:translateZ(0);
+    }
+    .hero-inner{position:relative;z-index:2;display:grid;place-items:center;height:100%;padding:clamp(16px,3vw,40px)}
+    .hero-card{backdrop-filter:saturate(1.1) blur(6px);background:color-mix(in oklab, white 65%, transparent);border-radius:var(--radius);padding:clamp(16px,3.6vw,32px);max-width:min(1000px,92vw);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+    .eyebrow{letter-spacing:.12em;text-transform:uppercase;color:#e2e8f0;font-weight:700;font-size:12px}
+    .hero h1{margin:.4rem 0 1rem;font-size:clamp(26px,5vw,46px);line-height:1.1;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+    .hero p{margin:0 0 1rem;color:#eef2f7;font-size:clamp(14px,2.2vw,18px)}
+    .cta{display:flex;gap:12px;flex-wrap:wrap}
+    .btn{appearance:none;border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+    .btn.whatsapp{background:#25D366;color:#053015}
+    .btn.call{background:var(--accent)}
+    .btn.alt{background:rgba(255,255,255,.9);color:var(--dark)}
+
+    /* --- SECTIONS --- */
+    section{padding:56px 20px}
+    .wrap{max-width:1100px;margin-inline:auto}
+    h2{font-size:clamp(22px,3.4vw,32px);margin:0 0 18px}
+    .muted{color:var(--muted)}
+
+    /* --- VILLAGE TOURS --- */
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+    .card{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:0 6px 18px rgba(2,8,20,.06)}
+    .card h3{margin:.2rem 0 .6rem}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#ecfeff;color:#075985;font-size:12px;margin-right:6px}
+
+    /* --- GALLERY --- */
+    .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+    .g-item{position:relative;border-radius:12px;overflow:hidden;cursor:pointer}
+    .g-item img{width:100%;height:180px;display:block;object-fit:cover}
+    .g-item .label{position:absolute;inset:auto 0 0 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.75));color:#fff;padding:10px 12px;font-weight:600}
+    .g-item:hover .label{background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.85))}
+
+    /* Modal */
+    dialog#photoModal{border:0;border-radius:16px;padding:0;max-width:min(900px,92vw)}
+    .modal-body{position:relative}
+    .modal-body img{width:100%;height:auto;display:block}
+    .modal-caption{padding:12px 16px;background:#0b1220;color:#e5e7eb}
+    .modal-close{position:absolute;top:8px;right:8px;border:0;background:#fff;border-radius:999px;padding:6px 10px;cursor:pointer}
+
+    /* --- PARTNERS --- */
+    .partners{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+    .partner{background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 6px 18px rgba(2,8,20,.06)}
+    .partner img{display:block;max-height:68px;object-fit:contain}
+    .partner.nabard img{max-height:92px; /* make NABARD big + clear */}
+
+    /* --- FOOTER --- */
+    footer{padding:30px 20px 60px;color:#475569}
+
+    /* small helpers */
+    .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);border:0}
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">WN</div>
-      <div>
-        <div class="title">Weavers Nest</div>
-        <div class="subtitle">Community-based rural tourism • Sonitpur, Assam</div>
+  <!-- HERO -->
+  <header class="hero" role="banner">
+    <div class="hero-inner">
+      <div class="hero-card">
+        <div class="eyebrow">Community Eco‑Tourism • Assam & Arunachal</div>
+        <h1>Village Tours, Traditional Elephant Watch Tower & Forest Tracking</h1>
+        <p>Experience Boro, Nyshi, Mising and Garo cultural trails. Guided river days, local food, and stories under the sal trees.</p>
+        <div class="cta">
+          <!-- Embedded numbers as requested -->
+          <a id="waBtn" class="btn whatsapp" href="https://wa.me/919678219052?text=Hi!%20I%20am%20interested%20in%20village%20tours%20%2F%20forest%20tracking.%20Please%20share%20details." target="_blank" rel="noopener">Chat on WhatsApp</a>
+          <a id="callBtn" class="btn call" href="tel:+91 96782 19052">Call Now</a>
+          <a href="#tours" class="btn alt">See Tours</a>
+        </div>
       </div>
     </div>
-    <a class="cta" target="_blank" rel="noreferrer noopener"
-       href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=header">
-      Book Now
-    </a>
   </header>
 
-  <main class="wrap">
-    <!-- Hero -->
-    <section class="hero">
-      <!-- Replace this photo at /public/images/hero.jpg -->
-      <img src="/images/hero.jpg" alt="Weavers Nest landscape" />
-      <div class="hero-text">
-        <h1>Slow travel in tribal Assam</h1>
-        <p>Village tours, birding in Nameri, gentle rafting, Pakke jeep safaris, handloom visits, riverside picnics.</p>
+  <!-- VILLAGE TOURS -->
+  <section id="tours">
+    <div class="wrap">
+      <h2>Village Tours (Choose One)</h2>
+      <p class="muted">Each village option is a separate curated visit with local hosts.</p>
+      <div class="grid" id="villageGrid">
+        <article class="card">
+          <h3>Boro Village</h3>
+          <p>Handloom walk, rice‑beer making demo, and courtyard songs.</p>
+          <span class="pill">Half‑day</span><span class="pill">Family‑friendly</span>
+        </article>
+        <article class="card">
+          <h3>Nyshi Village</h3>
+          <p>Cane‑bamboo craft lane, traditional headgear stories, forest edge trek.</p>
+          <span class="pill">Full‑day</span><span class="pill">Craft focus</span>
+        </article>
+        <article class="card">
+          <h3>Mising Village</h3>
+          <p>Stilt house trail, fishing methods by the river, folk rhythm circle.</p>
+          <span class="pill">Half‑day</span><span class="pill">Riverside</span>
+        </article>
+        <article class="card">
+          <h3>Garo Village</h3>
+          <p>Millet patches, fermented foods tasting, evening drum gathering.</p>
+          <span class="pill">Full‑day</span><span class="pill">Food trail</span>
+        </article>
       </div>
-    </section>
 
-    <!-- Step Planner -->
-    <section class="card">
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <div class="step-title">Choose date & guests</div>
-            <div class="grid">
-              <label>Date <input id="date" type="text" placeholder="YYYY-MM-DD" /></label>
-              <label>Guests <input id="guests" type="number" min="1" max="10" value="2" /></label>
-            </div>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <div class="step-title">Pick activities</div>
-            <div id="activities" class="cards"></div>
-            <textarea id="notes" rows="3" placeholder="Notes (e.g., lunch request, elder-friendly pace)"></textarea>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body">
-            <div class="step-title">Review & Share</div>
-            <div id="summary" class="summary"></div>
-            <div class="row">
-              <button id="buildPackage" class="cta alt">Get Custom Package</button>
-              <a class="cta" target="_blank" rel="noreferrer noopener"
-                href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=header">
-                Book via Google Form
-              </a>
-              <button id="downloadPdf" class="cta alt2">Download PDF</button>
-              <button id="emailPkg" class="cta alt">Email Package to Admin</button>
-            </div>
-            <div class="row" style="gap:8px;margin-top:8px">
-              <input id="attachPhoto" type="file" accept="image/*" />
-              <input id="webhookUrl" placeholder="Paste Google Sheets Webhook URL (Apps Script)" />
-              <button id="saveWebhook" class="badge">Save Webhook</button>
-            </div>
-            <div id="packageOut" class="package" style="white-space:pre-wrap;margin-top:8px"></div>
-          </div>
-        </div>
+      <div class="grid" style="margin-top:18px">
+        <article class="card">
+          <h3>Traditional Elephant Watch Tower</h3>
+          <p>Dawn lookout with local guardians; learn coexistence practices.</p>
+          <span class="pill">Early morning</span><span class="pill">Wildlife</span>
+        </article>
+        <article class="card">
+          <h3>Forest Tracking Walk</h3>
+          <p>Guided tracking basics inside the forest: prints, scat, calls, safety.</p>
+          <span class="pill">Guided</span><span class="pill">Nature learning</span>
+        </article>
       </div>
-    </section>
-
-    <!-- Gallery -->
-    <section class="card">
-      <h2>Gallery</h2>
-      <div class="gallery">
-        <img src="/images/village.jpg" alt="Village tour" />
-        <img src="/images/birding.jpg" alt="Bird watching" />
-        <img src="/images/rafting.jpg" alt="Rafting" />
-        <img src="/images/safari.jpg" alt="Jeep safari" />
-        <img src="/images/handloom.jpg" alt="Handloom" />
-        <img src="/images/picnic.jpg" alt="Picnic" />
-        <img src="/images/watchtower.jpg" alt="Watch tower" />
-      </div>
-    </section>
-
-    <!-- Partners & Sponsors -->
-    <section class="card">
-      <h2>Partners & Sponsors</h2>
-      <div class="sponsors">
-        <img src="/images/sponsor1.svg" alt="Sponsor 1" />
-        <img src="/images/sponsor2.svg" alt="Sponsor 2" />
-        <img src="/images/sponsor3.svg" alt="Sponsor 3" />
-        <img src="/images/sponsor4.svg" alt="Sponsor 4" />
-      </div>
-      <div class="hint">Replace with your partner logos (SVG/PNG). White background added for visibility.</div>
-    </section>
-
-    <!-- Chat -->
-    <section class="card">
-      <div class="chat-header">
-        <h2>Ask Weavers Nest</h2>
-        <input id="userId" placeholder="Your name or email (optional)" />
-      </div>
-      <div id="chat" class="chat"></div>
-      <div class="chat-controls">
-        <button id="micBtn" title="Voice input">🎤</button>
-        <input id="chatInput" placeholder="Ask about timings, seasons, safety…" />
-        <button id="sendBtn">Send</button>
-      </div>
-      <div class="hint">Answers come only from the official Weavers Nest document.</div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    © <span id="yr"></span> Weavers Nest • NABARD Supported
-    <div style="margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:8px;">
-      <!-- Put your real NABARD logo at /public/images/nabard.svg or .png -->
-      <img src="/images/nabard.svg" alt="NABARD" style="height:60px; background:#fff; padding:8px; border-radius:12px; border:1px solid #e5e7eb;">
-      <div class="subtitle" style="color:#e5e7eb;">NABARD Supported</div>
     </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section id="gallery">
+    <div class="wrap">
+      <h2>Photo Gallery</h2>
+      <p class="muted">Tap a photo to view; the name is shown on hover and in the preview.</p>
+      <div class="gallery" aria-live="polite">
+        <figure class="g-item" data-name="River Rafting">
+          <img src="/images/rafting.jpg" alt="River rafting" loading="lazy" />
+          <figcaption class="label">River Rafting</figcaption>
+        </figure>
+        <figure class="g-item" data-name="Village Weaving">
+          <img src="/images/weaving.jpg" alt="Village weaving" loading="lazy" />
+          <figcaption class="label">Village Weaving</figcaption>
+        </figure>
+        <figure class="g-item" data-name="Elephant Watch Tower">
+          <img src="/images/watch-tower.jpg" alt="Traditional elephant watch tower" loading="lazy" />
+          <figcaption class="label">Elephant Watch Tower</figcaption>
+        </figure>
+        <figure class="g-item" data-name="Forest Tracking">
+          <img src="/images/tracking.jpg" alt="Forest tracking" loading="lazy" />
+          <figcaption class="label">Forest Tracking</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- Modal for gallery -->
+    <dialog id="photoModal">
+      <div class="modal-body">
+        <button class="modal-close" aria-label="Close">✕</button>
+        <img id="modalImg" src="" alt="" />
+        <div class="modal-caption" id="modalCaption">&nbsp;</div>
+      </div>
+    </dialog>
+  </section>
+
+  <!-- PARTNERS & SPONSORS -->
+  <section id="partners">
+    <div class="wrap">
+      <h2>Partners & Sponsors</h2>
+      <div class="partners">
+        <!-- Keep only the needed logos. Make NABARD big and clear. Remove partner 3 and 4. -->
+        <div class="partner nabard" title="NABARD">
+          <img src="/images/NABARD.png" alt="NABARD" />
+        </div>
+        <div class="partner" title="Wild Mahashree">
+          <img src="/images/wild-mahashree.png" alt="Wild Mahashree" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHATBOT (no file upload, no webhook field) -->
+  <section id="chat" aria-label="Assistant">
+    <div class="wrap">
+      <h2>Ask the Guide</h2>
+      <p class="muted">Type your question. Ask for photos like: “Show rafting photos.”</p>
+      <div class="card">
+        <div id="chatLog" style="height:260px;overflow:auto;padding:12px 10px;background:#f1f5f9;border-radius:12px;margin-bottom:10px"></div>
+        <form id="chatForm">
+          <label class="sr-only" for="chatInput">Message</label>
+          <input id="chatInput" name="q" placeholder="Type here…" autocomplete="off" style="width:100%;padding:12px;border-radius:12px;border:1px solid #cbd5e1" />
+          <button id="sendBtn" type="submit" style="margin-top:8px;padding:10px 14px;border-radius:10px;border:0;background:#0b7b6f;color:#fff;font-weight:700">Send</button>
+          <button id="micBtn" type="button" style="margin-top:8px;margin-left:8px;padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff">🎤</button>
+          <input id="userId" type="hidden" value="guest" />
+        </form>
+        <div style="margin-top:10px">
+          <button id="buildPackage" class="btn alt">Build Custom Package</button>
+          <button id="downloadPdf" class="btn alt">Download PDF</button>
+          <button id="emailPkg" class="btn alt">Email Package to Admin</button>
+        </div>
+        <pre id="packageOut" style="white-space:pre-wrap;margin-top:10px"></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer class="wrap">
+    <small>© <span id="year"></span> Weavers Nest • Community‑led eco‑tourism</small>
   </footer>
 
-  <script>
-    // Pretty calendar
-    document.addEventListener('DOMContentLoaded', () => {
-      new Pikaday({
-        field: document.getElementById('date'),
-        format: 'YYYY-MM-DD',
-        firstDay: 1,
-        minDate: new Date(),
-        toString(date) {
-          const y = date.getFullYear();
-          const m = String(date.getMonth()+1).padStart(2,'0');
-          const d = String(date.getDate()).padStart(2,'0');
-          return `${y}-${m}-${d}`;
-        }
-      });
-    });
-  </script>
-
-  <script src="/app.js"></script>
+  <script src="/app.js" defer></script>
 </body>
 </html>
+```
+
+---
+
+# public/app.js
+
+```js
+// ===== Simple data =====
+const ACTIVITIES = [
+  { id: "villages", name: "Village Tours (Boro, Nyshi, Mising, Garo)", time: "9:00–14:00", note: "Each village ~30–45 min; lunch on request" },
+  { id: "birding",  name: "Bird Watching • Nameri NP",                 time: "6:30–13:30", note: "Nov–Apr; closed Tue" },
+  { id: "rafting",  name: "River Rafting • Jia Bhoroli",                time: "6:30–13:30", note: "Oct–May; Level 1; 13–15 km" },
+  { id: "safari",   name: "Jeep Safari • Pakke (AR)",                   time: "6:00–14:00", note: "Seasonal; ILP & permits required" },
+  { id: "handloom", name: "Handloom Centre • Morisuti",                 time: "",          note: "Eri silk, dyeing, artisans" },
+  { id: "picnic",   name: "Picnic by the Jia Bhoroli",                  time: "",          note: "Relaxing riverside" },
+  { id: "store",    name: "Bhalukpong Store",                           time: "",          note: "Crafts, garments, food products" },
+  { id: "watch",    name: "Traditional Elephant Watch Tower",           time: "",          note: "Observe wildlife & fields" }
+];
+
+// Tentative per-person pricing (edit anytime)
+const PRICING = {
+  villages: 800,
+  birding: 1500,
+  rafting: 1500,
+  safari: 3000,
+  handloom: 600,
+  picnic: 500,
+  store: 0,
+  watch: 400,
+  notes: "Costs are indicative per person; permits/ILP extra where applicable."
+};
+
+// ===== Shortcuts =====
+const $  = (q) => document.querySelector(q);
+const chatEl = $("#chatLog");
+oneTimeFixIds(); // align with current HTML ids
+const inputEl = $("#chatInput");
+const sendBtn = $("#sendBtn");
+const micBtn  = $("#micBtn");
+const userIdEl= $("#userId");
+
+const dateEl   = $("#date");
+const guestsEl = $("#guests");
+const actsEl   = $("#activities");
+const notesEl  = $("#notes");
+const summaryEl= $("#summary");
+const buildPackageBtn = $("#buildPackage");
+const packageOut = $("#packageOut");
+const downloadPdfBtn = $("#downloadPdf");
+const emailPkgBtn    = $("#emailPkg");
+
+let selected = new Set();
+let transcript = [];
+
+// ===== Planner UI =====
+function renderActivities() {
+  if (!actsEl) return;
+  actsEl.innerHTML = "";
+  ACTIVITIES.forEach(a => {
+    const div = document.createElement("div");
+    div.className = "card-item";
+    div.innerHTML = `
+      <header>
+        <div>
+          <div style="font-weight:600">${a.name}</div>
+          <div style="font-size:12px;color:#cbd5e1">${a.time || ""} ${a.note ? " • " + a.note : ""}</div>
+        </div>
+        <button class="badge select">${selected.has(a.id) ? "Selected" : "Select"}</button>
+      </header>
+    `;
+    div.querySelector(".select").onclick = () => {
+      if (selected.has(a.id)) selected.delete(a.id); else selected.add(a.id);
+      renderActivities(); renderSummary();
+    };
+    actsEl.appendChild(div);
+  });
+}
+function costFor(acts) {
+  return acts.map(a => PRICING[a] || 0).reduce((a,b)=>a+b, 0);
+}
+function renderSummary() {
+  if (!summaryEl) return;
+  const acts = ACTIVITIES.filter(a => selected.has(a.id)).map(a => a.id);
+  const names = ACTIVITIES.filter(a => selected.has(a.id)).map(a => a.name).join(" • ") || "None";
+  const perPerson = costFor(acts);
+  const guests = parseInt((guestsEl && guestsEl.value) || "1", 10);
+  const total = perPerson * guests;
+  summaryEl.innerHTML = `
+    <div>Date: <b>${(dateEl && dateEl.value) || "Not set"}</b></div>
+    <div>Guests: <b>${guests}</b></div>
+    <div>Activities: <b>${names}</b></div>
+    <div style="margin-top:6px">Tentative Cost: <b>₹${perPerson}</b> per person × ${guests} = <b>₹${total}</b></div>
+    ${selected.has("rafting") ? `
+      <div style="margin-top:8px;font-size:12px;opacity:.9">
+        <b>Rafting SOP:</b> Max 5 guests + 2 crew • No alcohol • Light snacks only • No swimming • Life jackets on • No unscheduled stops
+      </div>` : ""
+    }
+    <div style="margin-top:6px;font-size:12px;opacity:.9">${PRICING.notes}</div>
+  `;
+}
+renderActivities(); renderSummary();
+if (dateEl) dateEl.onchange = renderSummary;
+if (guestsEl) guestsEl.oninput = renderSummary;
+
+// ===== Chat helpers (photos on request) =====
+function addMsg(role, text, cites=[]) {
+  if (!chatEl) return;
+  const div = document.createElement("div");
+  div.className = `msg ${role==="user"?"me":"bot"}`;
+  div.innerHTML = text.split("
+").map(line=>`<div>${line}</div>`).join("");
+  if (role !== "user" && cites.length) {
+    const c = document.createElement("div");
+    c.className = "cite";
+    c.textContent = "Sources: " + cites.map(x=>`Weavers Nest#${x.chunkId}`).join(", ");
+    div.appendChild(c);
+  }
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  transcript.push({ ts: new Date().toISOString(), role, text, citations: cites });
+}
+
+function wantsPhotos(s) {
+  const low = s.toLowerCase();
+  return /photo|image|picture|pic|gallery/.test(low) ||
+         /show.*(raft|weav|elephant|tower|forest|track)/.test(low);
+}
+function addPhotos() {
+  const pics = [
+    { src: "/images/rafting.jpg", name: "River Rafting" },
+    { src: "/images/weaving.jpg", name: "Village Weaving" },
+    { src: "/images/watch-tower.jpg", name: "Elephant Watch Tower" },
+    { src: "/images/tracking.jpg", name: "Forest Tracking" },
+  ];
+  const html = pics.map(p => `
+    <figure style="display:inline-block;margin:6px;max-width:160px">
+      <img src="${p.src}" alt="${p.name}" style="width:160px;height:110px;object-fit:cover;border-radius:10px;display:block"/>
+      <figcaption style="text-align:center;font-size:12px;color:#334155;margin-top:6px">${p.name}</figcaption>
+    </figure>
+  `).join("");
+  addMsg("bot", html);
+}
+
+addMsg("bot", "Hi! Ask me about timings, seasons, safety, or activities. Say “show rafting photos” to see pictures.");
+
+async function send() {
+  const q = (inputEl && inputEl.value || "").trim();
+  if (!q) return;
+  addMsg("user", q);
+  if (inputEl) inputEl.value = "";
+  if (sendBtn) sendBtn.disabled = true;
+
+  try {
+    if (wantsPhotos(q)) {
+      addPhotos();
+    } else {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q, userId: (userIdEl && userIdEl.value) || "guest" })
+      });
+      const j = await r.json();
+      if (j.ok) {
+        addMsg("bot", j.reply, j.citations || []);
+        try {
+          const u = new SpeechSynthesisUtterance(j.reply);
+          u.rate = 1; u.pitch = 1; u.lang = "en-IN";
+          speechSynthesis.speak(u);
+        } catch {}
+      } else {
+        addMsg("bot", "Error: " + (j.error || "unknown"));
+      }
+    }
+  } catch {
+    addMsg("bot", "Network error.");
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+  }
+}
+if (sendBtn) sendBtn.onclick = send;
+if (inputEl) inputEl.addEventListener("keydown", (e) => e.key === "Enter" && send());
+
+// Voice input (free)
+let rec;
+if ("webkitSpeechRecognition" in window) {
+  const R = window.webkitSpeechRecognition;
+  rec = new R(); rec.lang = "en-IN"; rec.interimResults = false;
+  rec.onresult = (e) => { const txt = e.results[0][0].transcript; if (inputEl) { inputEl.value = txt; send(); } };
+}
+if (micBtn) micBtn.onclick = () => { if (!rec) return alert("Voice input not supported."); try { rec.start(); } catch {} };
+
+// ===== Custom Package (server) + local cost & share line =====
+if (buildPackageBtn) buildPackageBtn.onclick = async () => {
+  if (packageOut) packageOut.textContent = "Building…";
+  const acts = Array.from(selected);
+  const per = costFor(acts);
+  const guests = parseInt((guestsEl && guestsEl.value) || "1", 10);
+  const total = per * guests;
+
+  try {
+    const r = await fetch("/api/package", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: (dateEl && dateEl.value) || "",
+        guests,
+        activities: acts,
+        notes: (notesEl && notesEl.value) || "",
+        userId: (userIdEl && userIdEl.value) || "guest"
+      })
+    });
+    const j = await r.json();
+    let text = j.ok ? (j.suggestion || "") : "Error creating package.";
+
+    // Ensure cost & “share with Manjeet”
+    const costLine = `Tentative Cost: ₹${per} per person × ${guests} = ₹${total} (indicative; permits/ILP extra).`;
+    if (!/Tentative Cost/i.test(text)) text += `
+
+${costLine}`;
+    if (!/Manjeet/i.test(text)) text += `
+
+Next: Download the PDF and share it with Manjeet: +91 96782 19052.`;
+
+    if (packageOut) packageOut.textContent = text;
+    transcript.push({ ts: new Date().toISOString(), role: "bot", text: "[Package Suggestion]
+" + text, citations: j.citations||[] });
+
+  } catch (e) {
+    if (packageOut) packageOut.textContent = "Network error.";
+  }
+};
+
+// ===== PDF (client-side, no server change) =====
+if (downloadPdfBtn) downloadPdfBtn.onclick = async () => {
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) return alert("PDF library not loaded.");
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const margin = 40, line = 14;
+  let y = margin;
+
+  function write(txt, bold=false, size=11) {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(txt, 515);
+    lines.forEach(str => {
+      if (y > 800) { doc.addPage(); y = margin; }
+      doc.text(str, margin, y); y += line;
+    });
+  }
+  write("Weavers Nest Package & Transcript", true, 16); y += 6;
+  write("----------------------------------------------"); y += 6;
+
+  const pkg = (packageOut && packageOut.textContent || "").trim();
+  if (pkg) {
+    write("Custom Package", true, 12); y += 4;
+    write(pkg); y += 6;
+    write("----------------------------------------------"); y += 6;
+  }
+  write("Transcript", true, 12); y += 4;
+  transcript.forEach(item => write(`[${item.ts}] ${item.role.toUpperCase()}: ${item.text}`));
+
+  doc.save("weavers-nest-package.pdf");
+};
+
+// ===== Email package to admin (no attachments) =====
+if (emailPkgBtn) emailPkgBtn.onclick = async () => {
+  const text = (packageOut && packageOut.textContent || "").trim();
+  if (!text) return alert("Generate the package first.");
+  try {
+    const r = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject: "Weavers Nest Package", text, fromUser: (userIdEl && userIdEl.value) || "guest", attachments: [] })
+    });
+    const j = await r.json();
+    if (j.ok) alert("Package emailed to admin."); else alert("Email failed: " + (j.error || "unknown"));
+  } catch { alert("Email failed."); }
+};
+
+// ===== Footer year (supports both #yr and #year) =====
+const yrEl = document.getElementById("yr") || document.getElementById("year");
+if (yrEl) yrEl.textContent = new Date().getFullYear();
+
+// One-time fix for older templates: map #chat -> #chatLog if needed
+function oneTimeFixIds(){
+  const el = document.getElementById('chat');
+  if (el && el.id === 'chat') { el.id = 'chatLog'; }
+}
+```
+
+```js
+/*
+  Weavers Nest – UI glue & chat helper
+  - Fix hero coverage (handled by CSS in index.html via ::before with background-size:cover)
+  - WhatsApp & Call hooks
+  - Clickable gallery with names + modal
+  - Simple chat: if user asks for photos, show a few; else send to /api/chat (GROQ backend)
+  - No file upload, no webhook field
+*/
+
+(function(){
+  const Y = document.getElementById('year');
+  if (Y) Y.textContent = new Date().getFullYear();
+
+  // ==== CONTACT: WhatsApp & Call ====
+  // Replace with real numbers
+  const WHATSAPP_NUMBER = '+91 96782 19052'; // e.g., 918765432109
+  const CALL_NUMBER = '+91 96782 19052';    // e.g., +918765432109
+
+  const waBtn = document.getElementById('waBtn');
+  const callBtn = document.getElementById('callBtn');
+  if (waBtn){
+    const msg = encodeURIComponent('Hi! I am interested in village tours / forest tracking. Please share details.');
+    waBtn.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
+  }
+  if (callBtn){
+    callBtn.href = `tel:${CALL_NUMBER}`;
+  }
+
+  // ==== GALLERY MODAL ====
+  const modal = document.getElementById('photoModal');
+  const modalImg = document.getElementById('modalImg');
+  const modalCaption = document.getElementById('modalCaption');
+  const closeBtn = modal?.querySelector('.modal-close');
+
+  document.querySelectorAll('.g-item').forEach(fig => {
+    fig.addEventListener('click', () => {
+      const img = fig.querySelector('img');
+      const name = fig.dataset.name || img?.alt || 'Photo';
+      modalImg.src = img.src;
+      modalImg.alt = name;
+      modalCaption.textContent = name;
+      if (typeof modal.showModal === 'function') modal.showModal();
+    });
+  });
+  closeBtn?.addEventListener('click', () => modal.close());
+  modal?.addEventListener('click', (e)=>{ if(e.target === modal) modal.close(); });
+
+  // ==== CHAT (no upload, no webhook) ====
+  const chatLog = document.getElementById('chatLog');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+
+  function addMsg(role, html){
+    const wrap = document.createElement('div');
+    wrap.style.margin = '8px 0';
+    wrap.innerHTML = `<div style="font-weight:700;color:${role==='user' ? '#0f172a' : '#0b7b6f'}">${role==='user'?'You':'Guide'}</div><div>${html}</div>`;
+    chatLog.appendChild(wrap);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function addPhotos(what){
+    const pics = [
+      {src:'/images/rafting.jpg', name:'River Rafting'},
+      {src:'/images/weaving.jpg', name:'Village Weaving'},
+      {src:'/images/watch-tower.jpg', name:'Elephant Watch Tower'},
+      {src:'/images/tracking.jpg', name:'Forest Tracking'}
+    ];
+    const html = pics.map(p=>
+      `<figure style="display:inline-block;margin:6px;max-width:160px">
+         <img src="${p.src}" alt="${p.name}" style="width:160px;height:110px;object-fit:cover;border-radius:10px;display:block"/>
+         <figcaption style="text-align:center;font-size:12px;color:#334155;margin-top:6px">${p.name}</figcaption>
+       </figure>`
+    ).join('');
+    addMsg('assistant', html);
+  }
+
+  async function sendToBackend(q){
+    try{
+      const res = await fetch('/api/chat', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ q })
+      });
+      if(!res.ok) throw new Error('Network error');
+      const data = await res.json();
+      addMsg('assistant', (data && (data.reply || data.message || data.output)) || 'Okay.');
+    }catch(err){
+      addMsg('assistant', 'Sorry, I could not reach the guide just now. Try again.');
+    }
+  }
+
+  chatForm?.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const q = (chatInput.value||'').trim();
+    if(!q) return;
+    addMsg('user', q);
+
+    // If user requests photos/images/pictures, show a few locally
+    const low = q.toLowerCase();
+    if(/photo|image|picture|pics|gallery|show.*(raft|weav|elephant|tower|forest|track)/.test(low)){
+      addPhotos(low);
+    } else {
+      // Otherwise, send to backend (GROQ route)
+      sendToBackend(q);
+    }
+
+    chatInput.value = '';
+  });
+})();
+```

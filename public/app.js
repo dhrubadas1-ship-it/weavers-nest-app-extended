@@ -25,7 +25,7 @@ const PRICING = {
 
 // ===== Shortcuts =====
 const $  = (q) => document.querySelector(q);
-const chatEl = $("#chat");
+const chatEl = $("#chatLog");
 const inputEl = $("#chatInput");
 const sendBtn = $("#sendBtn");
 const micBtn  = $("#micBtn");
@@ -40,24 +40,13 @@ const buildPackageBtn = $("#buildPackage");
 const packageOut = $("#packageOut");
 const downloadPdfBtn = $("#downloadPdf");
 const emailPkgBtn    = $("#emailPkg");
-const webhookUrlEl   = $("#webhookUrl");
-const saveWebhookBtn = $("#saveWebhook");
-const attachEl       = $("#attachPhoto");
 
 let selected = new Set();
 let transcript = [];
-let savedWebhook = localStorage.getItem("wn:webhook") || "";
-
-// Init webhook box
-if (webhookUrlEl) webhookUrlEl.value = savedWebhook;
-if (saveWebhookBtn) saveWebhookBtn.onclick = () => {
-  savedWebhook = webhookUrlEl.value.trim();
-  localStorage.setItem("wn:webhook", savedWebhook);
-  alert("Webhook saved.");
-};
 
 // ===== Planner UI =====
 function renderActivities() {
+  if (!actsEl) return;
   actsEl.innerHTML = "";
   ACTIVITIES.forEach(a => {
     const div = document.createElement("div");
@@ -82,13 +71,14 @@ function costFor(acts) {
   return acts.map(a => PRICING[a] || 0).reduce((a,b)=>a+b, 0);
 }
 function renderSummary() {
+  if (!summaryEl) return;
   const acts = ACTIVITIES.filter(a => selected.has(a.id)).map(a => a.id);
   const names = ACTIVITIES.filter(a => selected.has(a.id)).map(a => a.name).join(" • ") || "None";
   const perPerson = costFor(acts);
-  const guests = parseInt(guestsEl.value || "1", 10);
+  const guests = parseInt((guestsEl && guestsEl.value) || "1", 10);
   const total = perPerson * guests;
   summaryEl.innerHTML = `
-    <div>Date: <b>${dateEl.value || "Not set"}</b></div>
+    <div>Date: <b>${(dateEl && dateEl.value) || "Not set"}</b></div>
     <div>Guests: <b>${guests}</b></div>
     <div>Activities: <b>${names}</b></div>
     <div style="margin-top:6px">Tentative Cost: <b>₹${perPerson}</b> per person × ${guests} = <b>₹${total}</b></div>
@@ -101,49 +91,72 @@ function renderSummary() {
   `;
 }
 renderActivities(); renderSummary();
-dateEl.onchange = renderSummary; guestsEl.oninput = renderSummary;
+if (dateEl) dateEl.onchange = renderSummary;
+if (guestsEl) guestsEl.oninput = renderSummary;
 
-// ===== Chat =====
+// ===== Chat helpers (photos on request) =====
 function addMsg(role, text, cites=[]) {
+  if (!chatEl) return;
   const div = document.createElement("div");
   div.className = `msg ${role==="user"?"me":"bot"}`;
   div.innerHTML = text.split("\n").map(line=>`<div>${line}</div>`).join("");
-  if (role !== "user" && cites.length) {
-    const c = document.createElement("div");
-    c.className = "cite";
-    c.textContent = "Sources: " + cites.map(x=>`Weavers Nest#${x.chunkId}`).join(", ");
-    div.appendChild(c);
-  }
   chatEl.appendChild(div);
   chatEl.scrollTop = chatEl.scrollHeight;
   transcript.push({ ts: new Date().toISOString(), role, text, citations: cites });
-  postToWebhook({ ts: new Date().toISOString(), type:"chat", role, text, userId: userIdEl.value || "guest" });
 }
-addMsg("bot", "Hi! Ask me about Weavers Nest timings, seasons, safety, or activities. I answer only from our official document.");
+
+function wantsPhotos(s) {
+  const low = s.toLowerCase();
+  return /photo|image|picture|pic|gallery/.test(low) ||
+         /show.*(raft|weav|elephant|tower|forest|track)/.test(low);
+}
+function addPhotos() {
+  const pics = [
+    { src: "/images/rafting.jpg", name: "River Rafting" },
+    { src: "/images/weaving.jpg", name: "Village Weaving" },
+    { src: "/images/watch-tower.jpg", name: "Elephant Watch Tower" },
+    { src: "/images/tracking.jpg", name: "Forest Tracking" },
+  ];
+  const html = pics.map(p => `
+    <figure style="display:inline-block;margin:6px;max-width:160px">
+      <img src="${p.src}" alt="${p.name}" style="width:160px;height:110px;object-fit:cover;border-radius:10px;display:block"/>
+      <figcaption style="text-align:center;font-size:12px;color:#334155;margin-top:6px">${p.name}</figcaption>
+    </figure>
+  `).join("");
+  addMsg("bot", html);
+}
+
+addMsg("bot", "Hi! Ask me about timings, seasons, or activities. Say 'show rafting photos' to see pictures.");
 
 async function send() {
-  const q = inputEl.value.trim();
+  const q = (inputEl && inputEl.value || "").trim();
   if (!q) return;
   addMsg("user", q);
   inputEl.value = "";
   sendBtn.disabled = true;
+
   try {
-    const r = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: q, userId: userIdEl.value || "guest" })
-    });
-    const j = await r.json();
-    if (j.ok) {
-      addMsg("bot", j.reply, j.citations || []);
-      try {
+    if (wantsPhotos(q)) {
+      addPhotos();
+    } else {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q, userId: (userIdEl && userIdEl.value) || "guest" })
+      });
+      const j = await r.json();
+      if (j.ok) {
+        addMsg("bot", j.reply);
         const u = new SpeechSynthesisUtterance(j.reply);
         u.rate = 1; u.pitch = 1; u.lang = "en-IN";
         speechSynthesis.speak(u);
-      } catch {}
-    } else addMsg("bot", "Error: " + (j.error || "unknown"));
-  } catch { addMsg("bot", "Network error."); }
-  finally { sendBtn.disabled = false; }
+      } else addMsg("bot", "Error: " + (j.error || "unknown"));
+    }
+  } catch {
+    addMsg("bot", "Network error.");
+  } finally {
+    sendBtn.disabled = false;
+  }
 }
 sendBtn.onclick = send;
 inputEl.addEventListener("keydown", (e) => e.key === "Enter" && send());
@@ -157,7 +170,7 @@ if ("webkitSpeechRecognition" in window) {
 }
 micBtn.onclick = () => { if (!rec) return alert("Voice input not supported."); try { rec.start(); } catch {} };
 
-// ===== Custom Package (server) + local cost & share line =====
+// ===== Custom Package =====
 buildPackageBtn.onclick = async () => {
   packageOut.textContent = "Building…";
   const acts = Array.from(selected);
@@ -180,88 +193,46 @@ buildPackageBtn.onclick = async () => {
     const j = await r.json();
     let text = j.ok ? (j.suggestion || "") : "Error creating package.";
 
-    // Ensure cost & “share with Manjeet” are present even if server didn’t add them
     const costLine = `Tentative Cost: ₹${per} per person × ${guests} = ₹${total} (indicative; permits/ILP extra).`;
     if (!/Tentative Cost/i.test(text)) text += `\n\n${costLine}`;
     if (!/Manjeet/i.test(text)) text += `\n\nNext: Download the PDF and share it with Manjeet: +91 96782 19052.`;
 
     packageOut.textContent = text;
-    transcript.push({ ts: new Date().toISOString(), role: "bot", text: "[Package Suggestion]\n" + text, citations: j.citations||[] });
-    postToWebhook({ ts: new Date().toISOString(), type:"package", userId: userIdEl.value || "guest", payload: text });
-  } catch (e) {
+  } catch {
     packageOut.textContent = "Network error.";
   }
 };
 
-// ===== PDF (client-side, no server change) =====
+// ===== PDF Download =====
 downloadPdfBtn.onclick = async () => {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const margin = 40, line = 14;
-  let y = margin;
+  let y = 40;
 
-  function write(txt, bold=false, size=11) {
-    doc.setFont("helvetica", bold ? "bold" : "normal");
-    doc.setFontSize(size);
-    const lines = doc.splitTextToSize(txt, 515);
-    lines.forEach(str => {
-      if (y > 800) { doc.addPage(); y = margin; }
-      doc.text(str, margin, y); y += line;
-    });
-  }
-  write("Weavers Nest Package & Transcript", true, 16); y += 6;
-  write("----------------------------------------------"); y += 6;
+  doc.setFontSize(16);
+  doc.text("Weavers Nest Package & Transcript", 40, y); y += 20;
 
   const pkg = (packageOut.textContent || "").trim();
-  if (pkg) {
-    write("Custom Package", true, 12); y += 4;
-    write(pkg); y += 6;
-    write("----------------------------------------------"); y += 6;
-  }
-  write("Transcript", true, 12); y += 4;
-  transcript.forEach(item => write(`[${item.ts}] ${item.role.toUpperCase()}: ${item.text}`));
-
+  doc.setFontSize(11);
+  doc.text(pkg || "No package yet.", 40, y, { maxWidth: 520 });
   doc.save("weavers-nest-package.pdf");
 };
 
-// ===== Email package to admin (works when RECIPIENT_EMAIL is set in Vercel) =====
-async function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result.split(",")[1]);
-    fr.onerror = reject;
-    fr.readAsDataURL(file);
-  });
-}
-
+// ===== Email package =====
 emailPkgBtn.onclick = async () => {
   const text = (packageOut.textContent || "").trim();
   if (!text) return alert("Generate the package first.");
-  let attachments = [];
-  const f = attachEl?.files?.[0];
-  if (f) {
-    const b64 = await readFileAsBase64(f);
-    attachments.push({ filename: f.name, content: b64, encoding: "base64", contentType: f.type || "image/jpeg" });
-  }
   try {
     const r = await fetch("/api/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: "Weavers Nest Package", text, fromUser: userIdEl.value || "guest", attachments })
+      body: JSON.stringify({ subject: "Weavers Nest Package", text })
     });
     const j = await r.json();
-    if (j.ok) alert("Package emailed to admin."); else alert("Email failed: " + (j.error || "unknown"));
+    if (j.ok) alert("Package emailed to admin."); else alert("Email failed.");
   } catch { alert("Email failed."); }
 };
 
-// ===== Webhook logger (Google Sheets Apps Script) =====
-async function postToWebhook(payload) {
-  const url = (webhookUrlEl && webhookUrlEl.value) || "";
-  if (!url) return;
-  try {
-    await fetch(url, { method:"POST", mode:"no-cors", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
-  } catch {}
-}
-
-// Footer year
-document.getElementById("yr").textContent = new Date().getFullYear();
+// ===== Footer Year =====
+const yrEl = document.getElementById("year");
+if (yrEl) yrEl.textContent = new Date().getFullYear();
