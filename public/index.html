@@ -2,72 +2,74 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Weavers Nest – Community Eco Tours</title>
   <meta name="description" content="Village tours, forest tracking, community experiences." />
   <link rel="preload" href="/images/hero.jpg" as="image" />
+  <!-- jsPDF CDN for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
   <style>
-    :root{--brand:#0b7b6f;--dark:#0f172a;--light:#f8fafc;--muted:#64748b;--accent:#ffc857;--radius:16px}
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--light);color:var(--dark)}
+    :root{--brand:#0b7b6f;--accent:#ffc857;--muted:#64748b;--radius:14px}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    body{margin:0;background:#fbfdff;color:#0f172a}
+    a { text-decoration:none }
     /* HERO */
-    .hero{position:relative;min-height:64vh;background:#081218;color:#fff;display:grid;place-items:center}
-    .hero::before{content:"";position:absolute;inset:0;background:url('/images/hero.jpg') center/cover no-repeat;filter:brightness(.65)}
-    .hero-inner{position:relative;padding:20px;max-width:980px;text-align:center}
-    .hero-card{background:rgba(255,255,255,.08);padding:20px;border-radius:var(--radius)}
-    .hero h1{margin:0 0 8px;font-size:clamp(22px,4.2vw,40px)}
-    .hero p{margin:0 0 10px;color:#e6eef0}
-    /* CONTACT BAR */
-    .contactbar{background:#fff;border-top:1px solid #e6eef0;border-bottom:1px solid #e6eef0}
+    .hero {position:relative;min-height:56vh;display:block;overflow:hidden;background:#081218}
+    .hero-bg {position:absolute;inset:0;background-image:url('/images/hero.jpg');background-size:cover;background-position:top center;filter:brightness(.72)}
+    .hero-empty {height:56vh} /* visual spacer so text isn't inside hero */
+    /* CONTACT BAR (above content) */
+    .contactbar{background:#fff;border-bottom:1px solid #eef2f7}
     .contactwrap{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+    .btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;display:inline-block}
     .btn.whatsapp{background:#25D366;color:#053015}
     .btn.call{background:var(--accent);color:#1f2937}
-    .btn.form{background:#0b7b6f;color:#fff}
-    /* LAYOUT */
-    .wrap{max-width:1100px;margin:0 auto;padding:28px 16px}
-    h2{margin:0 0 12px}
-    .muted{color:var(--muted)}
+    .btn.form{background:var(--brand);color:#fff}
+    /* PAGE WRAP */
+    .wrap{max-width:1100px;margin:20px auto;padding:0 16px}
+    h1,h2{margin:.2rem 0 .6rem}
+    .muted{color:var(--muted);font-size:0.95rem}
+    /* Tours grid */
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-    .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,8,20,.06)}
-    /* PLANNER */
-    .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(2,8,20,.06)}
-    #activities{display:grid;gap:10px}
+    .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 8px 22px rgba(2,8,20,.06)}
+    /* Planner */
+    .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 8px 22px rgba(2,8,20,.06)}
+    .panel input, .panel textarea{padding:8px;border:1px solid #e6eef5;border-radius:8px}
+    #activities{display:grid;gap:10px;margin-top:8px}
     .card-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid #eef2f7}
-    .badge{padding:6px 10px;border-radius:999px;background:#f1f5f9;border:1px solid #cbd5e1;cursor:pointer}
+    .badge{padding:6px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e6eef5;cursor:pointer}
     .badge.is-on{background:var(--brand);color:#fff;border-color:var(--brand)}
-    /* GALLERY */
-    .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
-    .g-item{position:relative;border-radius:10px;overflow:hidden;background:#f3f4f6;cursor:pointer}
+    /* Gallery */
+    .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:8px}
+    .g-item{position:relative;border-radius:10px;overflow:hidden;background:#f7fafc}
     .g-item img{width:100%;height:140px;object-fit:cover;display:block}
-    .g-item .label{position:absolute;left:0;right:0;bottom:0;padding:8px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6))}
+    .g-item .label{position:absolute;left:0;right:0;bottom:0;padding:8px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));font-weight:600}
     /* Modal */
-    dialog#photoModal{border:0;border-radius:12px;padding:0;max-width:920px}
-    .modal-body img{width:100%;height:auto;display:block}
+    dialog{border:0;border-radius:12px;padding:0}
+    dialog img{width:100%;height:auto;display:block}
     .modal-close{position:absolute;top:8px;right:8px;border:0;background:#fff;border-radius:999px;padding:6px;cursor:pointer}
-    /* PARTNERS */
+    /* Partners */
     .partners{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
     .partner img{max-height:80px;object-fit:contain;background:#fff;padding:6px;border-radius:8px}
     .partner.nabard img{max-height:110px}
-    /* CHAT */
-    .chat-wrap{margin-top:8px}
-    .chat-log{height:220px;overflow:auto;padding:12px;background:#f1f5f9;border-radius:8px}
-    /* FOOTER */
-    footer{padding:20px 16px;background:transparent;color:#475569;margin-top:18px}
-    .footer-logos img{max-height:54px}
-    /* small */
-    .sr-only{position:absolute;left:-9999px}
+    /* Chat */
+    .chat-log{height:240px;overflow:auto;padding:12px;background:#f1f5f9;border-radius:8px}
+    .msg{margin-bottom:8px}
+    .me{color:#0f172a}
+    .bot{color:var(--brand)}
+    /* small helpers */
+    .small-muted{font-size:12px;color:var(--muted)}
+    footer{padding:18px 16px;color:#475569}
   </style>
 </head>
 <body>
+  <!-- HERO background only -->
   <header class="hero" role="banner">
-    <div class="hero-inner hero-card">
-      <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#cfe8e3">Community Eco-Tourism • Assam & Arunachal</div>
-      <h1>Village Tours & Forest Tracking</h1>
-      <p>Experience Boro, Nyshi, Mising and Garo cultural trails, river days, local food and forest walks.</p>
-    </div>
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="hero-empty"></div>
   </header>
 
-  <!-- Contact bar: WhatsApp, Call, Book (Google Form) -->
+  <!-- CONTACT BAR (separate & above content) -->
   <div class="contactbar">
     <div class="contactwrap">
       <a id="waBtn" class="btn whatsapp" target="_blank" rel="noopener"
@@ -78,94 +80,105 @@
     </div>
   </div>
 
-  <!-- Tours overview -->
-  <section class="wrap" id="tours">
-    <h2>Village Tours</h2>
-    <p class="muted">Each village option is a separate curated visit with local hosts.</p>
-    <div class="grid">
-      <article class="card"><h3>Boro Village</h3><p>Handloom, rice-beer demo, courtyard songs.</p></article>
-      <article class="card"><h3>Nyshi Village</h3><p>Cane-bamboo craft lane, forest-edge trek.</p></article>
-      <article class="card"><h3>Mising Village</h3><p>Stilt houses, river fishing demo.</p></article>
-      <article class="card"><h3>Garo Village</h3><p>Millet, fermented foods, evening drums.</p></article>
+  <!-- NOW: textual intro (moved below contact bar) -->
+  <main class="wrap" role="main">
+    <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 8px 20px rgba(2,8,20,.04)">
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Community Eco-Tourism • Assam & Arunachal</div>
+      <h1 style="margin-top:6px">Village Tours & Forest Tracking</h1>
+      <p class="muted">Experience Boro, Nyshi, Mising and Garo cultural trails, river days, local food and forest walks.</p>
     </div>
-  </section>
 
-  <!-- Planner -->
-  <section class="wrap" id="plan">
-    <h2>Build Your Day</h2>
-    <div class="panel">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-        <label>Date: <input id="date" type="date" /></label>
-        <label>Guests: <input id="guests" type="number" min="1" value="3" style="width:90px" /></label>
-        <label style="flex:1">Notes: <input id="notes" placeholder="Any special request?" style="width:100%" /></label>
+    <!-- Tours -->
+    <section id="tours" aria-labelledby="toursHeading">
+      <h2 id="toursHeading">Village Tours</h2>
+      <p class="muted">Each village option is a separate curated visit with local hosts.</p>
+      <div class="grid" role="list">
+        <article class="card" role="listitem"><h3>Boro Village</h3><p>Handloom, rice-beer demo, courtyard songs.</p></article>
+        <article class="card" role="listitem"><h3>Nyshi Village</h3><p>Cane & bamboo craft lane, forest edge trek.</p></article>
+        <article class="card" role="listitem"><h3>Mising Village</h3><p>Stilt house trail, river fishing methods.</p></article>
+        <article class="card" role="listitem"><h3>Garo Village</h3><p>Millet patches, fermented foods & drumming.</p></article>
       </div>
+    </section>
 
-      <div id="activities"></div>
-
-      <div id="summary" style="margin-top:12px"></div>
-
-      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <button id="buildPackage" class="btn">Build Custom Package</button>
-        <button id="confirmSaveBtn" class="btn" style="background:#0b7b6f;color:#fff;display:none">Confirm & Save (enter mobile)</button>
-        <label style="margin-left:auto"><a id="downloadPdf" class="btn" href="#">Download PDF</a></label>
-        <button id="emailPkg" class="btn">Email Package to Admin</button>
-        <a id="googleFormBtnBottom" class="btn form" target="_blank" rel="noopener"
-           href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=dialog">Book via Google Form</a>
-      </div>
-
-      <pre id="packageOut" style="white-space:pre-wrap;margin-top:12px"></pre>
-    </div>
-  </section>
-
-  <!-- Gallery -->
-  <section class="wrap" id="gallery">
-    <h2>Photo Gallery</h2>
-    <p class="muted">Tap a photo to preview — name shown on hover.</p>
-    <div class="gallery" id="galleryGrid">
-      <figure class="g-item" data-name="River Rafting"><img src="/images/rafting.jpg" alt="River rafting" loading="lazy" onerror="this.src='/images/placeholder.jpg'"/><figcaption class="label">River Rafting</figcaption></figure>
-      <figure class="g-item" data-name="Village Weaving"><img src="/images/weaving.jpg" alt="Village weaving" loading="lazy" onerror="this.src='/images/placeholder.jpg'"/><figcaption class="label">Village Weaving</figcaption></figure>
-      <figure class="g-item" data-name="Forest Tracking"><img src="/images/tracking.jpg" alt="Forest tracking" loading="lazy" onerror="this.src='/images/placeholder.jpg'"/><figcaption class="label">Forest Tracking</figcaption></figure>
-      <figure class="g-item" data-name="Bird Watching"><img src="/images/birding.jpg" alt="Bird watching" loading="lazy" onerror="this.src='/images/placeholder.jpg'"/><figcaption class="label">Bird Watching</figcaption></figure>
-    </div>
-
-    <dialog id="photoModal">
-      <div class="modal-body" style="position:relative">
-        <button class="modal-close" aria-label="Close">✕</button>
-        <img id="modalImg" src="" alt="" />
-        <div class="modal-caption" id="modalCaption" style="padding:10px;background:#0b1220;color:#fff"></div>
-      </div>
-    </dialog>
-  </section>
-
-  <!-- Partners -->
-  <section class="wrap" id="partners">
-    <h2>Partners & Sponsors</h2>
-    <div class="partners">
-      <div class="partner nabard" title="NABARD"><img src="/images/NABARD.png" alt="NABARD" /></div>
-      <div class="partner" title="Wild Mahashree"><img src="/images/wild-mahashree.png" alt="Wild Mahashree" /></div>
-      <div class="partner" title="Post Card"><img src="/images/postcard.png" alt="Post Card" /></div>
-    </div>
-  </section>
-
-  <!-- Chat -->
-  <section class="wrap" id="chatSection">
-    <h2>Ask the Guide</h2>
-    <div class="panel">
-      <div id="chatLog" class="chat-log"></div>
-      <form id="chatForm" style="margin-top:8px">
-        <input id="chatInput" placeholder="Type here…" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef0" autocomplete="off"/>
-        <div style="margin-top:8px;display:flex;gap:8px">
-          <button id="sendBtn" type="submit" class="btn">Send</button>
-          <button id="micBtn" type="button" class="btn">🎤</button>
-          <input id="userId" type="hidden" value="guest" />
+    <!-- Planner -->
+    <section id="plan" style="margin-top:20px">
+      <h2>Build Your Day</h2>
+      <div class="panel">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+          <label>Date: <input id="date" type="date" /></label>
+          <label>Guests: <input id="guests" type="number" min="1" value="3" style="width:90px" /></label>
+          <label style="flex:1">Notes: <input id="notes" placeholder="Any special request?" style="width:100%" /></label>
         </div>
-      </form>
-    </div>
-  </section>
 
-  <footer class="wrap">
-    <small>© <span id="year"></span> Weavers Nest • Community-led eco-tourism</small>
-    <div class="footer-logos" style="margin-top:8px"><img src="/images/NABARD.png" alt="NABARD" /></div>
+        <div id="activities" aria-live="polite"></div>
+
+        <div id="summary" style="margin-top:12px" class="small-muted"></div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="buildPackage" class="btn">Build Custom Package</button>
+          <button id="confirmSaveBtn" class="btn" style="background:var(--brand);color:#fff;display:none">Confirm & Save (enter mobile)</button>
+          <button id="downloadPdf" class="btn">Download PDF</button>
+          <button id="emailPkg" class="btn">Email Package to Admin</button>
+          <a id="googleFormBtnBottom" class="btn form" target="_blank" rel="noopener"
+             href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=dialog">Book via Google Form</a>
+        </div>
+
+        <pre id="packageOut" style="white-space:pre-wrap;margin-top:12px;background:#f8fafc;padding:10px;border-radius:8px"></pre>
+      </div>
+    </section>
+
+    <!-- Gallery -->
+    <section id="gallery" style="margin-top:20px">
+      <h2>Photo Gallery</h2>
+      <p class="muted">Tap a photo to preview — name shown on hover.</p>
+      <div class="gallery" id="galleryGrid">
+        <figure class="g-item" data-name="River Rafting"><img src="/images/rafting.jpg" alt="River rafting" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">River Rafting</figcaption></figure>
+        <figure class="g-item" data-name="Village Weaving"><img src="/images/weaving.jpg" alt="Village weaving" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">Village Weaving</figcaption></figure>
+        <figure class="g-item" data-name="Forest Tracking"><img src="/images/tracking.jpg" alt="Forest tracking" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">Forest Tracking</figcaption></figure>
+        <figure class="g-item" data-name="Bird Watching"><img src="/images/birding.jpg" alt="Bird watching" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">Bird Watching</figcaption></figure>
+      </div>
+      <dialog id="photoModal">
+        <div style="position:relative">
+          <button class="modal-close" aria-label="Close">✕</button>
+          <img id="modalImg" src="" alt="" />
+          <div id="modalCaption" style="padding:10px;background:#0b1220;color:#fff"></div>
+        </div>
+      </dialog>
+    </section>
+
+    <!-- Partners -->
+    <section id="partners" style="margin-top:20px">
+      <h2>Partners & Sponsors</h2>
+      <div class="partners" role="list">
+        <div class="partner nabard" role="listitem" title="NABARD"><img src="/images/NABARD.png" alt="NABARD" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
+        <div class="partner" role="listitem" title="Wild Mahashree"><img src="/images/wild-mahashree.png" alt="Wild Mahashree" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
+        <div class="partner" role="listitem" title="Post Card"><img src="/images/postcard.png" alt="Post Card" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
+      </div>
+    </section>
+
+    <!-- Chat -->
+    <section id="chatSection" style="margin-top:20px">
+      <h2>Ask the Guide</h2>
+      <div class="panel">
+        <div id="chatLog" class="chat-log" role="log" aria-live="polite"></div>
+        <form id="chatForm" style="margin-top:8px">
+          <input id="chatInput" placeholder="Type here…" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef5" autocomplete="off"/>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button id="sendBtn" class="btn" type="submit">Send</button>
+            <button id="micBtn" class="btn" type="button">🎤</button>
+            <div id="micStatus" class="small-muted" style="margin-left:8px"></div>
+            <input id="userId" type="hidden" value="guest" />
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <small>© <span id="year"></span> Weavers Nest • Community-led eco-tourism</small>
+      <div style="margin-top:8px"><img src="/images/NABARD.png" alt="NABARD" style="max-height:44px" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
+    </div>
   </footer>
 
   <script src="/app.js" defer></script>
