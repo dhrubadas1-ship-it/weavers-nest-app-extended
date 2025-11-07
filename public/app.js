@@ -36,6 +36,55 @@ const yearEl = $("#year");
 
 let selected = new Set();
 let UID = null;
+// === Restore / render activity cards (defensive) ===
+(function restoreActivitiesUI(){
+  if (!actsEl) return console.warn("No #activities element found - cannot render activities.");
+  // Clear existing
+  actsEl.innerHTML = "";
+
+  ACTIVITIES.forEach(a => {
+    const div = document.createElement("div");
+    div.className = "card-item";
+    div.dataset.id = a.id || "";
+    const metaLine = (a.time ? a.time : "") + (a.note ? (a.time ? " • " : "") + a.note : "");
+    div.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="flex:1">
+          <div style="font-weight:600">${a.name}</div>
+          <div style="font-size:12px;color:#64748b">${metaLine}</div>
+        </div>
+      </div>
+      <button class="badge select ${selected.has(a.id) ? 'is-on' : ''}">${selected.has(a.id) ? 'Selected' : 'Select'}</button>
+    `;
+    const btn = div.querySelector(".select");
+    btn.addEventListener("click", () => {
+      if (selected.has(a.id)) selected.delete(a.id); else selected.add(a.id);
+      btn.classList.toggle("is-on", selected.has(a.id));
+      btn.textContent = selected.has(a.id) ? "Selected" : "Select";
+      if (typeof renderSummary === "function") renderSummary();
+      if (packageOut) packageOut.textContent = "";
+      if (confirmSaveBtn) confirmSaveBtn.style.display = "none";
+      if (downloadPdfBtn) downloadPdfBtn.disabled = true;
+      if (emailPkgBtn) emailPkgBtn.disabled = true;
+      try { localStorage.setItem("wn:selected", JSON.stringify(Array.from(selected))); } catch(e){}
+    });
+    actsEl.appendChild(div);
+  });
+
+  try {
+    const prev = JSON.parse(localStorage.getItem("wn:selected") || "[]");
+    prev.forEach(id => { if (id) selected.add(id); });
+    $$("#activities .card-item").forEach(ci=>{
+      const id = ci.dataset.id;
+      const b = ci.querySelector('.select');
+      if (selected.has(id)) { b.classList.add('is-on'); b.textContent = 'Selected'; } else { b.classList.remove('is-on'); b.textContent = 'Select'; }
+    });
+  } catch(e){}
+
+  if (typeof renderSummary === "function") renderSummary();
+  console.info("Activities rendered. Selected:", Array.from(selected));
+})();
+
 // === Reactivate Build Custom Package (drop-in) ===
 (function activateBuildBtn(){
   if (!buildBtn) return console.warn("buildPackage button not found");
