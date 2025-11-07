@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Weavers Nest – Community Eco Tours</title>
+  <meta name="description" content="Village tours, forest tracking, community experiences." />
+  <link rel="preload" href="/images/hero.jpg" as="image" />
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
+  <style>
+    :root{--brand:#0b7b6f;--accent:#ffc857;--muted:#64748b}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    body{margin:0;background:#fbfdff;color:#0f172a}
+    a{color:inherit}
+    .hero {position:relative;min-height:48vh;overflow:hidden}
+    .hero .bg {position:absolute;inset:0;background-image:url('/images/hero.jpg');background-size:cover;background-position:top center;filter:brightness(.72)}
+    .hero .overlay {position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:18px;color:#fff}
+    .contactbar{background:#fff;border-bottom:1px solid #eef2f7}
+    .contactwrap{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;display:inline-block}
+    .btn.whatsapp{background:#25D366;color:#053015}
+    .btn.call{background:var(--accent);color:#1f2937}
+    .btn.form{background:var(--brand);color:#fff}
+    .wrap{max-width:1100px;margin:20px auto;padding:0 16px}
+    h1,h2{margin:.2rem 0 .6rem}
+    .muted{color:var(--muted);font-size:.95rem}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+    .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 8px 22px rgba(2,8,20,.06)}
+    .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 8px 22px rgba(2,8,20,.06)}
+    #activities{display:grid;gap:10px;margin-top:8px}
+    .card-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid #eef2f7}
+    .badge{padding:6px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e6eef5;cursor:pointer}
+    .badge.is-on{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:8px}
+    .g-item{position:relative;border-radius:10px;overflow:hidden;background:#f7fafc}
+    .g-item img{width:100%;height:140px;object-fit:cover;display:block}
+    .g-item .label{position:absolute;left:0;right:0;bottom:0;padding:8px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));font-weight:600}
+    dialog{border:0;border-radius:12px;padding:0}
+    dialog img{width:100%;height:auto;display:block}
+    .partners{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .partner img{max-height:80px;object-fit:contain;background:#fff;padding:6px;border-radius:8px}
+    .partner.nabard img{max-height:110px}
+    .chat-log{height:240px;overflow:auto;padding:12px;background:#f1f5f9;border-radius:8px}
+    .msg{margin-bottom:8px}
+    footer{padding:18px 16px;color:#475569}
+    pre#packageOut{white-space:pre-wrap;background:#f8fafc;padding:10px;border-radius:8px}
+    .small-muted{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header class="hero" role="banner">
+    <div class="bg" aria-hidden="true"></div>
+    <div class="overlay"></div>
+  </header>
+
+  <div class="contactbar">
+    <div class="contactwrap">
+      <!-- WhatsApp direct chat button -->
+<a id="waBtn"
+   class="btn whatsapp"
+   href="https://wa.me/919678219052?text=Hello%20Weavers%20Nest%2C%20I%20want%20to%20book%20a%20package"
+   target="_blank"
+   rel="noopener noreferrer">
+   💬 Chat on WhatsApp
+</a>
+      <a id="callBtn" class="btn call" href="tel:+919678219052">Call Now</a>
+      <a id="googleFormBtn" class="btn form" target="_blank" rel="noopener" href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=dialog">Book via Google Form</a>
+    </div>
+  </div>
+
+  <main class="wrap" role="main">
+    <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 8px 20px rgba(2,8,20,.04)">
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Community Eco-Tourism • Assam & Arunachal</div>
+      <h1 style="margin-top:6px">Village Tours & Forest Tracking</h1>
+      <p class="muted">Experience Boro, Nyshi, Mising and Garo cultural trails, river days, local food and forest walks.</p>
+    </div>
+
+    <section id="tours" aria-labelledby="toursHeading">
+      <h2 id="toursHeading">Village Tours</h2>
+      <div class="grid" role="list">
+        <article class="card" role="listitem"><h3>Boro Village</h3><p>Handloom, rice-beer demo, courtyard songs.</p></article>
+        <article class="card" role="listitem"><h3>Nyshi Village</h3><p>Cane & bamboo craft lane, forest edge trek.</p></article>
+        <article class="card" role="listitem"><h3>Mising Village</h3><p>Stilt house trail, river fishing methods.</p></article>
+        <article class="card" role="listitem"><h3>Garo Village</h3><p>Millet patches, fermented foods & drumming.</p></article>
+      </div>
+    </section>
+
+    <section id="plan" style="margin-top:20px">
+      <h2>Build Your Day</h2>
+      <div class="panel">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+          <label>Date: <input id="date" type="date" /></label>
+          <label>Guests: <input id="guests" type="number" min="1" value="3" style="width:90px" /></label>
+          <label style="flex:1">Notes: <input id="notes" placeholder="Any special request?" style="width:100%" /></label>
+        </div>
+
+        <div id="activities" aria-live="polite"></div>
+
+        <div id="summary" style="margin-top:12px" class="small-muted"></div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="buildPackage" class="btn">Build Custom Package</button>
+          <button id="confirmSaveBtn" class="btn" style="background:var(--brand);color:#fff;display:none">Confirm & Save (enter mobile)</button>
+          <button id="downloadPdf" class="btn">Download PDF</button>
+          <button id="emailPkg" class="btn">Email Package to Admin</button>
+        </div>
+
+        <pre id="packageOut"></pre>
+      </div>
+    </section>
+
+    <section id="gallery" style="margin-top:20px">
+      <h2>Photo Gallery</h2>
+      <p class="muted">Tap a photo to preview — name shown on hover.</p>
+      <div class="gallery" id="galleryGrid">
+        <figure class="g-item" data-name="River Rafting"><img src="/images/rafting.jpg" alt="River rafting" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">River Rafting</figcaption></figure>
+        <figure class="g-item" data-name="Village Weaving"><img src="/images/weaving.jpg" alt="Village weaving" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">Village Weaving</figcaption></figure>
+        <figure class="g-item" data-name="Forest Tracking"><img src="/images/tracking.jpg" alt="Forest tracking" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">Forest Tracking</figcaption></figure>
+        <figure class="g-item" data-name="Bird Watching"><img src="/images/birding.jpg" alt="Bird watching" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/><figcaption class="label">Bird Watching</figcaption></figure>
+      </div>
+      <dialog id="photoModal">
+        <div style="position:relative">
+          <button class="modal-close" aria-label="Close">✕</button>
+          <img id="modalImg" src="" alt="" />
+          <div id="modalCaption" style="padding:10px;background:#0b1220;color:#fff"></div>
+        </div>
+      </dialog>
+    </section>
+
+    <section id="partners" style="margin-top:20px">
+      <h2>Partners & Sponsors</h2>
+      <div class="partners" role="list">
+        <div class="partner nabard" role="listitem" title="NABARD"><img src="/images/NABARD.png" alt="NABARD" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
+        <div class="partner" role="listitem" title="Wild Mahashree"><img src="/images/wild-mahashree.png" alt="Wild Mahashree" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
+        <div class="partner" role="listitem" title="Post Card"><img src="/images/postcard.png" alt="Post Card" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
+      </div>
+    </section>
+
+    <section id="chatSection" style="margin-top:20px">
+      <h2>Ask the Guide</h2>
+      <div class="panel">
+        <div id="chatLog" class="chat-log" role="log" aria-live="polite"></div>
+        <form id="chatForm" style="margin-top:8px">
+          <input id="chatInput" placeholder="Type here…" style="width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef5" autocomplete="off"/>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button id="sendBtn" class="btn" type="submit">Send</button>
+            <button id="micBtn" class="btn" type="button">🎤</button>
+            <div id="micStatus" class="small-muted" style="margin-left:8px"></div>
+            <input id="userId" type="hidden" value="guest" />
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <small>© <span id="year"></span> Weavers Nest • Community-led eco-tourism</small>
+    </div>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
