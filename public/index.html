@@ -4,7 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Weavers Nest • Sonitpur, Assam</title>
+
+  <!-- Base styles (your existing CSS still loads) -->
   <link rel="stylesheet" href="/styles.css" />
+
+  <!-- Calendar + PDF (CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pikaday/css/pikaday.css">
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pikaday/pikaday.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <!-- Minimal tweaks so hero/gallery/logos look great on dark -->
+  <style>
+    .hero img{height:340px;object-fit:cover;filter:contrast(1.05) saturate(1.05)}
+    .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55))}
+    .hero-text{position:absolute;left:16px;bottom:16px;background:rgba(0,0,0,.35);padding:12px 14px;border-radius:12px;backdrop-filter:blur(4px)}
+    .gallery{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    .gallery img{width:100%;height:180px;object-fit:cover;border-radius:12px;border:1px solid #23232a}
+    .sponsors img{width:100%;height:80px;object-fit:contain;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px}
+    .row input[type="file"]{background:#0f1115;color:#fff;border:1px solid #23232a;border-radius:10px;padding:6px}
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -22,14 +41,17 @@
   </header>
 
   <main class="wrap">
+    <!-- Hero -->
     <section class="hero">
+      <!-- Replace this photo at /public/images/hero.jpg -->
       <img src="/images/hero.jpg" alt="Weavers Nest landscape" />
       <div class="hero-text">
         <h1>Slow travel in tribal Assam</h1>
-        <p>Village tours, birding in Nameri, rafting, jeep safaris in Pakke, handloom visits, and riverside picnics.</p>
+        <p>Village tours, birding in Nameri, gentle rafting, Pakke jeep safaris, handloom visits, riverside picnics.</p>
       </div>
     </section>
 
+    <!-- Step Planner -->
     <section class="card">
       <div class="steps">
         <div class="step">
@@ -37,7 +59,7 @@
           <div class="step-body">
             <div class="step-title">Choose date & guests</div>
             <div class="grid">
-              <label>Date <input id="date" type="date" /></label>
+              <label>Date <input id="date" type="text" placeholder="YYYY-MM-DD" /></label>
               <label>Guests <input id="guests" type="number" min="1" max="10" value="2" /></label>
             </div>
           </div>
@@ -63,20 +85,35 @@
                 href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=header">
                 Book via Google Form
               </a>
-              <button id="downloadChat" class="cta alt2">Download Transcript (JSON)</button>
               <button id="downloadPdf" class="cta alt2">Download PDF</button>
               <button id="emailPkg" class="cta alt">Email Package to Admin</button>
             </div>
-            <div class="row">
+            <div class="row" style="gap:8px;margin-top:8px">
+              <input id="attachPhoto" type="file" accept="image/*" />
               <input id="webhookUrl" placeholder="Paste Google Sheets Webhook URL (Apps Script)" />
               <button id="saveWebhook" class="badge">Save Webhook</button>
             </div>
-            <div id="packageOut" class="package"></div>
+            <div id="packageOut" class="package" style="white-space:pre-wrap;margin-top:8px"></div>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- Gallery -->
+    <section class="card">
+      <h2>Gallery</h2>
+      <div class="gallery">
+        <img src="/images/village.jpg" alt="Village tour" />
+        <img src="/images/birding.jpg" alt="Bird watching" />
+        <img src="/images/rafting.jpg" alt="Rafting" />
+        <img src="/images/safari.jpg" alt="Jeep safari" />
+        <img src="/images/handloom.jpg" alt="Handloom" />
+        <img src="/images/picnic.jpg" alt="Picnic" />
+        <img src="/images/watchtower.jpg" alt="Watch tower" />
+      </div>
+    </section>
+
+    <!-- Partners & Sponsors -->
     <section class="card">
       <h2>Partners & Sponsors</h2>
       <div class="sponsors">
@@ -85,9 +122,10 @@
         <img src="/images/sponsor3.svg" alt="Sponsor 3" />
         <img src="/images/sponsor4.svg" alt="Sponsor 4" />
       </div>
-      <div class="hint">Replace these with partner logos (SVG/PNG). Click to open their sites—just wrap each image with a link.</div>
+      <div class="hint">Replace with your partner logos (SVG/PNG). White background added for visibility.</div>
     </section>
 
+    <!-- Chat -->
     <section class="card">
       <div class="chat-header">
         <h2>Ask Weavers Nest</h2>
@@ -103,7 +141,33 @@
     </section>
   </main>
 
-  <footer class="footer">© <span id="yr"></span> Weavers Nest • NABARD Supported</footer>
+  <footer class="footer">
+    © <span id="yr"></span> Weavers Nest • NABARD Supported
+    <div style="margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <!-- Put your real NABARD logo at /public/images/nabard.svg or .png -->
+      <img src="/images/nabard.svg" alt="NABARD" style="height:60px; background:#fff; padding:8px; border-radius:12px; border:1px solid #e5e7eb;">
+      <div class="subtitle" style="color:#e5e7eb;">NABARD Supported</div>
+    </div>
+  </footer>
+
+  <script>
+    // Pretty calendar
+    document.addEventListener('DOMContentLoaded', () => {
+      new Pikaday({
+        field: document.getElementById('date'),
+        format: 'YYYY-MM-DD',
+        firstDay: 1,
+        minDate: new Date(),
+        toString(date) {
+          const y = date.getFullYear();
+          const m = String(date.getMonth()+1).padStart(2,'0');
+          const d = String(date.getDate()).padStart(2,'0');
+          return `${y}-${m}-${d}`;
+        }
+      });
+    });
+  </script>
+
   <script src="/app.js"></script>
 </body>
 </html>
