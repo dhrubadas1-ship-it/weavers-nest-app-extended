@@ -181,36 +181,143 @@ buildBtn && buildBtn.addEventListener("click", () => {
   if (emailPkgBtn) emailPkgBtn.disabled = false;
 });
 
-// ---------- Confirm modal (simple inline modal replacement) ----------
-async function showPhonePrompt() {
-  // custom modal via prompt for minimal patch (can be replaced with nicer UI)
-  const isTest = confirm("Save as TEST record? (OK = test, Cancel = real)");
-  let mobile = prompt("Enter mobile number to confirm booking (10 digits or +country):", "");
-  if (!mobile) { alert("Confirmation cancelled."); return null; }
-  mobile = mobile.replace(/[^\d+]/g, "");
-  if (!/^\+?\d{10,15}$/.test(mobile)) { alert("Invalid number. Please enter 10–15 digits."); return null; }
-  if (!mobile.startsWith("+")) {
-    if (mobile.length === 10) mobile = "+91" + mobile;
-    else mobile = "+" + mobile;
-  }
-  return { mobile, test: isTest };
-}
+// === ENHANCED PACKAGE FORMAT + Confirm & Save handler ===
+(function enhancePackageAndWireConfirm(){
 
-// ---------- POST confirm ----------
-async function postConfirm(payload) {
-  try {
-    const res = await fetch("/api/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+  // mapping: activity id -> suggested time + short blurb
+  const ACTIVITY_META = {
+    boro:    { time: "09:00–13:00", note: "Handloom demo, rice-beer tasting, courtyard songs." },
+    nyshi:   { time: "09:00–17:00", note: "Cane & bamboo crafts, forest edge walk." },
+    mising:  { time: "09:00–13:00", note: "Stilt houses, riverside life & fish demo." },
+    garo:    { time: "09:00–17:00", note: "Food tasting, drum gathering in evening." },
+    birding: { time: "05:30–10:30", note: "Early morning birdwatching (best Nov–Apr)." },
+    rafting: { time: "08:00–13:00", note: "Guided rafting with GoPro photos; safety briefing required." },
+    safari:  { time: "06:00–12:00", note: "Jeep safari (permits may be required)." },
+    handloom:{ time: "10:00–13:00", note: "Eri silk weaving demo & shopping." },
+    picnic:  { time: "11:00–15:00", note: "Relaxing riverside lunch picnic." },
+    store:   { time: "", note: "Local crafts, food products for purchase." },
+    tracking:{ time: "06:00–11:00", note: "Guided forest tracking inside community lands." }
+  };
+
+  // helper to build attractive package text (multi-line + small bullets)
+  function prettyPackage(pkg) {
+    const date = pkg.date || "Not set";
+    const guests = pkg.guests || 1;
+    const notes = pkg.notes || "-";
+    const acts = pkg.activities && pkg.activities.length ? pkg.activities : [];
+
+    // for each activity build a nice line with time & short note
+    const lines = acts.map(id => {
+      const meta = ACTIVITY_META[id] || {};
+      const name = (window.ACTIVITIES && window.ACTIVITIES.find(a=>a.id===id)) ? window.ACTIVITIES.find(a=>a.id===id).name : id;
+      const time = meta.time ? ` (${meta.time})` : "";
+      const note = meta.note ? ` — ${meta.note}` : "";
+      return `• ${name}${time}${note}`;
     });
-    return await res.json();
-  } catch (e) {
-    return { ok:false, error: String(e) };
-  }
-}
 
-if (confirmSaveBtn) confirmSaveBtn.addEventListener("click", async () => {
+    // suggested add-ons (simple heuristics)
+    const addOns = [];
+    if (acts.includes("rafting")) addOns.push("GoPro video (extra), Dry bag");
+    if (acts.includes("birding")) addOns.push("Binocular hire, Early breakfast pack");
+    if (acts.includes("handloom") || acts.includes("store")) addOns.push("Carry extra cash for crafts");
+
+    const suggestions = addOns.length ? `Suggested add-ons: ${addOns.join(" • ")}` : "Suggested add-ons: None";
+
+    const packing = "Bring: water bottle, hat, sunscreen, comfortable shoes. Follow guide instructions for safety.";
+
+    const human = [
+      `Weavers Nest — Custom Package`,
+      `Date: ${date}`,
+      `Guests: ${guests}`,
+      ``,
+      `Planned activities:`,
+      ...(lines.length ? lines : ["• None selected"]),
+      ``,
+      `Notes: ${notes}`,
+      ``,
+      suggestions,
+      packing,
+      ``,
+      `To confirm this booking: click Confirm & Save and enter your mobile number.`,
+      `Download or email this package for record keeping.`,
+      ``,
+      `Reference: ${pkg.ts || new Date().toISOString()}`
+    ].join("\n");
+
+    return human;
+  }
+
+  // replace UI summary with pretty format when build occurs
+  const origBuild = window.buildPackageHandler || null;
+  window.buildPackageHandler = function wrappedBuild() {
+    if (typeof origBuild === "function") origBuild();
+    const pkg = window.__lastBuiltPackage || {};
+    const pretty = prettyPackage(pkg);
+    const out = document.getElementById("packageOut") || document.getElementById("summary");
+    if (out) out.textContent = pretty;
+    const confirmBtn = document.getElementById("confirmSaveBtn");
+    if (confirmBtn) confirmBtn.style.display = "inline-block";
+    const dl = document.getElementById("downloadPdf");
+    if (dl) dl.disabled = false;
+    const em = document.getElementById("emailPkg");
+    if (em) em.disabled = false;
+  };
+
+  // wire confirm button to send only after build
+  const confirmBtn = document.getElementById("confirmSaveBtn");
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", async function(){
+      const pkg = window.__lastBuiltPackage;
+      if (!pkg) { alert("Please build the package first."); return; }
+
+      const saveAsTest = confirm("Mark this save as TEST? (OK = test, Cancel = real)");
+      let mobile = prompt("Enter mobile number to confirm booking (10 digits or +country):", "");
+      if (!mobile) { alert("Cancelled."); return; }
+      mobile = mobile.replace(/[^\d+]/g,"");
+      if (!/^\+?\d{10,15}$/.test(mobile)) { alert("Invalid mobile. Enter 10-15 digits."); return; }
+      if (!mobile.startsWith("+")) {
+        if (mobile.length === 10) mobile = "+91"+mobile; else mobile = "+"+mobile;
+      }
+
+      const payload = {
+        uid: localStorage.getItem("wn:uid") || ("wn_" + Math.random().toString(36).slice(2,10)),
+        mobile,
+        test: !!saveAsTest,
+        payload: {
+          timestamp: new Date().toISOString(),
+          date: pkg.date,
+          guests: pkg.guests,
+          activities: pkg.activities,
+          notes: pkg.notes,
+          summary: (document.getElementById("packageOut") || { textContent: pkg.summary }).textContent || pkg.summary
+        }
+      };
+
+      confirmBtn.disabled = true;
+      const prevText = confirmBtn.textContent;
+      confirmBtn.textContent = "Saving…";
+
+      try {
+        const resp = await fetch("/api/confirm", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+        const j = await resp.json().catch(()=>null);
+        if (resp.ok && j && j.ok) {
+          alert("Saved — reference: " + (j.ref || j.ts || "saved"));
+          confirmBtn.style.display = "none";
+        } else {
+          console.warn("Confirm error", j);
+          alert("Save failed: " + (j?.error || "Unknown error"));
+        }
+      } catch (err) {
+        console.error("Confirm exception", err);
+        alert("Save failed: network error");
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = prevText || "Confirm & Save (enter mobile)";
+      }
+    });
+  }
+
+})();
   const date = ($("#date") && $("#date").value) || "";
   const guests = parseInt(($("#guests") && $("#guests").value) || 1, 10);
   const activities = Array.from(selected);
