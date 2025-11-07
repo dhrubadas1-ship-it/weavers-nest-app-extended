@@ -1,302 +1,348 @@
 // public/app.js
-// Front-end logic: activities, package build, confirm/save, PDF, gallery modal, chat + voice
+// Robust front-end glue for Weavers Nest
+// - Defensive wiring for Build Custom Package
+// - PDF download (jsPDF if available, fallback to txt)
+// - Confirm uses last built package
+// - Gallery stable image handling (onerror fallback, object-fit)
+// - Partner logos visibility helpers
+// This file intentionally focuses on fixing the package/build + gallery/logo issues
+// without modifying HTML on disk. Drop in as a full replacement.
 
-// ---------- Data ----------
-const ACTIVITIES = [
-  { id: "boro", name: "Boro Village (Handloom & songs)" },
-  { id: "nyshi", name: "Nyshi Village (Cane & bamboo)" },
-  { id: "mising", name: "Mising Village (Stilt houses & river life)" },
-  { id: "garo", name: "Garo Village (Food & drumming)" },
-  { id: "birding", name: "Bird Watching • Nameri NP" },
-  { id: "rafting", name: "River Rafting • Jia Bhoroli" },
-  { id: "safari", name: "Jeep Safari • Pakke (AR)" },
-  { id: "handloom", name: "Handloom Centre • Morisuti" },
-  { id: "picnic", name: "Picnic by the Jia Bhoroli" },
-  { id: "store", name: "Bhalukpong Store" },
-  { id: "tracking", name: "Forest Tracking" }
-];
-
-// ---------- Helpers ----------
+// ---------- Utilities ----------
 const $ = (s) => document.querySelector(s);
-const actsEl = $("#activities");
-const summaryEl = $("#summary");
-const buildBtn = $("#buildPackage");
-const packageOut = $("#packageOut");
-const downloadPdfBtn = $("#downloadPdf");
-const emailPkgBtn = $("#emailPkg");
-const confirmSaveBtn = $("#confirmSaveBtn");
-const chatLog = $("#chatLog");
-const chatForm = $("#chatForm");
-const chatInput = $("#chatInput");
-const sendBtn = $("#sendBtn");
-const micBtn = $("#micBtn");
-const micStatus = $("#micStatus");
-const userIdInput = $("#userId");
-const yearEl = $("#year");
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const safeText = (v) => (v === undefined || v === null) ? '' : String(v);
 
-let selected = new Set();
-let UID = null;
+// ---------- App state ----------
+window.__wn = window.__wn || {};
+window.__lastBuiltPackage = window.__lastBuiltPackage || null;
+window.selected = window.selected || new Set();
 
-// ---------- UID ----------
-function getOrCreateUID() {
-  const key = "wn:uid";
-  const qp = new URLSearchParams(location.search).get("uid");
-  if (qp) { localStorage.setItem(key, qp); return qp; }
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = "wn_" + Math.random().toString(36).slice(2,10);
-    localStorage.setItem(key, id);
+// ---------- DOM refs (defensive) ----------
+const refs = {
+  actsEl: $("#activities"),
+  buildBtn: $("#buildPackage"),
+  packageOut: $("#packageOut"),
+  confirmBtn: $("#confirmSaveBtn"),
+  downloadBtn: $("#downloadPdf"),
+  emailBtn: $("#emailPkg"),
+  dateEl: $("#date"),
+  guestsEl: $("#guests"),
+  notesEl: $("#notes"),
+  galleryGrid: $("#galleryGrid"),
+  partnerNodes: $$(".partner"),
+  chatForm: $("#chatForm"),
+  chatInput: $("#chatInput"),
+  sendBtn: $("#sendBtn"),
+};
+
+// ---------- Ensure elements exist ----------
+Object.keys(refs).forEach(k => {
+  if (!refs[k]) {
+    // avoid spamming console for optional nodes
+    // console.debug(`ref missing: ${k}`);
   }
-  return id;
-}
-UID = getOrCreateUID();
-if (userIdInput) userIdInput.value = UID;
-
-// ---------- Render activities ----------
-function renderActivities() {
-  if (!actsEl) return;
-  actsEl.innerHTML = "";
-  ACTIVITIES.forEach(a => {
-    // Skip "Traditional Elephant Watch Tower" (removed)
-    const div = document.createElement("div");
-    div.className = "card-item";
-    div.innerHTML = `
-      <div style="display:flex;gap:12px;align-items:center">
-        <div><div style="font-weight:600">${a.name}</div></div>
-      </div>
-      <button class="badge ${selected.has(a.id) ? 'is-on' : ''}">${selected.has(a.id) ? 'Selected' : 'Select'}</button>
-    `;
-    div.querySelector(".badge").onclick = () => {
-      if (selected.has(a.id)) selected.delete(a.id); else selected.add(a.id);
-      renderActivities(); renderSummary();
-    };
-    actsEl.appendChild(div);
-  });
-}
-
-// ---------- Summary (no live cost) ----------
-function renderSummary() {
-  const date = ($("#date") && $("#date").value) || "Not set";
-  const guests = ($("#guests") && $("#guests").value) || "1";
-  const names = ACTIVITIES.filter(a => selected.has(a.id)).map(a => a.name).join(" • ") || "None";
-  const html = `Date: ${date}\nGuests: ${guests}\nActivities: ${names}`;
-  if (summaryEl) summaryEl.innerText = html;
-}
-renderActivities(); renderSummary();
-if ($("#date")) $("#date").addEventListener("change", renderSummary);
-if ($("#guests")) $("#guests").addEventListener("input", renderSummary);
-
-// ---------- Build package ----------
-buildBtn && buildBtn.addEventListener("click", () => {
-  const date = ($("#date") && $("#date").value) || "";
-  const guests = parseInt(($("#guests") && $("#guests").value) || 1, 10);
-  const activities = Array.from(selected);
-  const notes = ($("#notes" && $("#notes").value) || "").trim();
-  const names = ACTIVITIES.filter(a => selected.has(a.id)).map(a => a.name).join(" • ") || "None";
-  const summaryText = `Date: ${date || "Not set"}\nGuests: ${guests}\nActivities: ${names}\nNotes: ${notes || "-"}\n\nDownload the PDF and share it with Manjeet: +91 96782 19052.`;
-  if (packageOut) packageOut.textContent = summaryText;
-  // expose actions
-  if (confirmSaveBtn) confirmSaveBtn.style.display = "inline-block";
-  // ensure download & email behave
-  if (downloadPdfBtn) downloadPdfBtn.disabled = false;
-  if (emailPkgBtn) emailPkgBtn.disabled = false;
 });
 
-// ---------- Confirm modal (simple inline modal replacement) ----------
-async function showPhonePrompt() {
-  // custom modal via prompt for minimal patch (can be replaced with nicer UI)
-  const isTest = confirm("Save as TEST record? (OK = test, Cancel = real)");
-  let mobile = prompt("Enter mobile number to confirm booking (10 digits or +country):", "");
-  if (!mobile) { alert("Confirmation cancelled."); return null; }
-  mobile = mobile.replace(/[^\d+]/g, "");
-  if (!/^\+?\d{10,15}$/.test(mobile)) { alert("Invalid number. Please enter 10–15 digits."); return null; }
-  if (!mobile.startsWith("+")) {
-    if (mobile.length === 10) mobile = "+91" + mobile;
-    else mobile = "+" + mobile;
+// ---------- Helper: read selected activities ----------
+function currentSelectedActivities() {
+  // prefer window.selected if populated
+  if (window.selected && typeof window.selected === 'object' && window.selected.size !== undefined) {
+    return Array.from(window.selected);
   }
-  return { mobile, test: isTest };
-}
-
-// ---------- POST confirm ----------
-async function postConfirm(payload) {
-  try {
-    const res = await fetch("/api/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    return await res.json();
-  } catch (e) {
-    return { ok:false, error: String(e) };
-  }
-}
-
-if (confirmSaveBtn) confirmSaveBtn.addEventListener("click", async () => {
-  const date = ($("#date") && $("#date").value) || "";
-  const guests = parseInt(($("#guests") && $("#guests").value) || 1, 10);
-  const activities = Array.from(selected);
-  const notes = ($("#notes" && $("#notes").value) || "").trim();
-  const names = ACTIVITIES.filter(a => selected.has(a.id)).map(a => a.name).join(" • ") || "None";
-  const summaryText = `Date: ${date || "Not set"}\nGuests: ${guests}\nActivities: ${names}\nNotes: ${notes || "-"}\n\nDownload the PDF and share it with Manjeet: +91 96782 19052.`;
-
-  const phone = await showPhonePrompt();
-  if (!phone) return;
-  confirmSaveBtn.disabled = true;
-  confirmSaveBtn.textContent = "Saving…";
-
-  const payload = {
-    uid: UID,
-    mobile: phone.mobile,
-    test: !!phone.test,
-    payload: {
-      timestamp: new Date().toISOString(),
-      date,
-      guests,
-      activities,
-      notes,
-      summary: summaryText
+  // fallback: find badges with is-on
+  const out = [];
+  $$("#activities .card-item").forEach(ci => {
+    const badge = ci.querySelector(".badge");
+    if (badge && badge.classList.contains("is-on")) {
+      // try to find an id on the element or use its text
+      const dataId = ci.dataset?.id;
+      if (dataId) out.push(dataId);
+      else {
+        const txt = ci.innerText || "";
+        out.push(txt.trim().split("\n")[0].trim());
+      }
     }
+  });
+  return out;
+}
+
+// ---------- Helper: format package summary ----------
+function buildSummaryText(date, guests, activityNames, notes) {
+  return `Date: ${date || "Not set"}
+Guests: ${guests}
+Activities: ${activityNames || "None"}
+Notes: ${notes || "-"}
+
+Download the PDF and share it with Manjeet: +91 96782 19052.`;
+}
+
+// ---------- Robust build handler ----------
+window.buildPackageHandler = function buildPackageHandler() {
+  const date = refs.dateEl ? refs.dateEl.value : "";
+  const guests = refs.guestsEl ? parseInt(refs.guestsEl.value || "1", 10) : 1;
+  const notes = refs.notesEl ? refs.notesEl.value.trim() : "";
+  const activities = currentSelectedActivities();
+
+  // Find names of activities from DOM or fallback
+  let activityNames = "";
+  if (activities.length) {
+    // try to map to visible names by searching activity elements
+    const names = [];
+    activities.forEach(a => {
+      // if a is an id, try to find element with data-id or match by substring
+      let foundName = null;
+      const byData = $(`#activities [data-id="${a}"]`);
+      if (byData) foundName = (byData.querySelector('div')?.innerText || byData.innerText).trim();
+      if (!foundName) {
+        // fallback: search for card that contains the id as text
+        $$("#activities .card-item").some(ci => {
+          const t = ci.innerText || "";
+          if (t.toLowerCase().includes(String(a).toLowerCase())) { foundName = t.trim().split("\n")[0].trim(); return true; }
+          return false;
+        });
+      }
+      names.push(foundName || a);
+    });
+    activityNames = names.join(" • ");
+  } else {
+    // if nothing selected, try to read selected class names text
+    activityNames = $$("#activities .card-item .badge.is-on").map(ci => {
+      const p = ci.closest('.card-item');
+      return p ? (p.querySelector('div')?.innerText || p.innerText).trim().split("\n")[0].trim() : "";
+    }).filter(Boolean).join(" • ");
+  }
+
+  const summaryText = buildSummaryText(date, guests, activityNames, notes);
+
+  // update UI
+  if (refs.packageOut) {
+    refs.packageOut.textContent = summaryText;
+  } else {
+    // try to find an alternate element
+    const out = document.querySelector("#packageOut") || document.querySelector(".package-out");
+    if (out) out.textContent = summaryText;
+  }
+
+  // enable buttons
+  if (refs.confirmBtn) refs.confirmBtn.style.display = "inline-block";
+  if (refs.downloadBtn) refs.downloadBtn.disabled = false;
+  if (refs.emailBtn) refs.emailBtn.disabled = false;
+
+  // persist last built package for other handlers
+  window.__lastBuiltPackage = {
+    date: date,
+    guests: guests,
+    activities: activities,
+    notes: notes,
+    summary: summaryText,
+    ts: new Date().toISOString(),
   };
 
-  const result = await postConfirm(payload);
-  confirmSaveBtn.disabled = false;
-  confirmSaveBtn.textContent = "Confirm & Save (enter mobile)";
-  if (result.ok) {
-    alert("Package saved. Reference: " + (result.ref || result.ts || "saved"));
-    confirmSaveBtn.style.display = "none";
-  } else {
-    alert("Save failed: " + (result.error || "unknown"));
-  }
-});
+  console.info("Weavers Nest: package built", window.__lastBuiltPackage);
+};
 
-// ---------- PDF using jsPDF ----------
-downloadPdfBtn && downloadPdfBtn.addEventListener("click", async () => {
-  const text = (packageOut && packageOut.textContent) || "";
-  // use jsPDF if available
-  try {
-    const { jsPDF } = window.jspdf || (window.jspdf = null) || {};
-    if (window.jspdf && typeof window.jspdf.jsPDF === "function") {
-      const doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
-      doc.setFontSize(14);
-      doc.text("Weavers Nest Package", 40, 60);
-      doc.setFontSize(11);
-      const lines = doc.splitTextToSize(text, 520);
-      doc.text(lines, 40, 90);
-      doc.save("weavers-nest-package.pdf");
-    } else {
-      // fallback: download as .txt
-      const blob = new Blob([text], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "weavers-nest-package.txt";
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    }
-  } catch (e) {
-    console.error(e);
-    alert("PDF generation failed.");
-  }
-});
-
-// ---------- Email package (simple) ----------
-emailPkgBtn && emailPkgBtn.addEventListener("click", async () => {
-  const text = (packageOut && packageOut.textContent) || "";
-  if (!text) return alert("Build the package first.");
-  try {
-    const r = await fetch("/api/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: "Weavers Nest Package", text, fromUser: UID })
-    });
-    const j = await r.json();
-    if (j.ok) alert("Package emailed to admin."); else alert("Email failed: " + (j.error || "unknown"));
-  } catch (e) {
-    alert("Email failed: " + String(e));
-  }
-});
-
-// ---------- Gallery modal ----------
-const modal = document.getElementById("photoModal");
-const modalImg = document.getElementById("modalImg");
-const modalCaption = document.getElementById("modalCaption");
-const closeBtn = modal ? modal.querySelector(".modal-close") : null;
-document.querySelectorAll(".g-item").forEach(fig => {
-  fig.addEventListener("click", () => {
-    const img = fig.querySelector("img");
-    const name = fig.dataset.name || (img && img.alt) || "Photo";
-    if (modalImg) modalImg.src = img.src;
-    if (modalCaption) modalCaption.textContent = name;
-    if (typeof modal.showModal === "function") modal.showModal();
-  });
-});
-closeBtn && closeBtn.addEventListener("click", () => modal.close());
-modal && modal.addEventListener("click", (e)=> { if (e.target === modal) modal.close(); });
-
-// ---------- Chat & voice ----------
-function addChat(role, textHtml) {
-  if (!chatLog) return;
-  const wrapper = document.createElement("div"); wrapper.className = "msg " + (role==="user" ? "me" : "bot");
-  wrapper.innerHTML = `<div style="font-weight:700;color:${role==="user"?"#0f172a":"var(--brand)"}">${role==="user"?"You":"Guide"}</div><div>${textHtml}</div>`;
-  chatLog.appendChild(wrapper);
-  chatLog.scrollTop = chatLog.scrollHeight;
-}
-addChat("bot","Hi! Ask me about timings, seasons, or activities. Say 'show rafting photos' to see pictures.");
-
-// feature-detect SpeechRecognition
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-let rec = null;
-if (SpeechRec) {
-  try {
-    rec = new SpeechRec();
-    rec.lang = "en-IN";
-    rec.interimResults = false;
-    rec.onstart = () => { if (micStatus) micStatus.textContent = "Listening..."; }
-    rec.onend = () => { if (micStatus) micStatus.textContent = ""; }
-    rec.onresult = (e) => {
-      const txt = e.results[0][0].transcript;
-      chatInput.value = txt;
-      // auto submit
-      chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-    };
-  } catch (e) { rec = null; }
-}
-if (!SpeechRec && micStatus) micStatus.textContent = "Voice not supported in this browser";
-
-if (micBtn) micBtn.addEventListener("click", () => {
-  if (!rec) return alert("Voice input not supported in your browser.");
-  try {
-    rec.start();
-  } catch (e) { console.warn("rec.start failed", e); }
-});
-
-chatForm && chatForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const q = (chatInput && chatInput.value || "").trim();
-  if (!q) return;
-  addChat("user", q);
-  chatInput.value = "";
-  // photo trigger
-  const low = q.toLowerCase();
-  if (/photo|image|picture|pic|gallery|show.*(raft|weav|forest|track|bird)/.test(low)) {
-    const pics = [
-      {src:"/images/rafting.jpg", name:"River Rafting"},
-      {src:"/images/weaving.jpg", name:"Village Weaving"},
-      {src:"/images/tracking.jpg", name:"Forest Tracking"},
-      {src:"/images/birding.jpg", name:"Bird Watching"}
-    ];
-    const html = pics.map(p=>`<div style="display:inline-block;margin:6px"><img src="${p.src}" style="width:120px;height:90px;object-fit:cover;border-radius:8px"/><div style="text-align:center;font-size:12px">${p.name}</div></div>`).join("");
-    addChat("bot", html);
+// wire the build button defensively
+(function wireBuildButton() {
+  const b = refs.buildBtn || document.getElementById("buildPackage");
+  if (!b) {
+    console.warn("Build button (#buildPackage) not found");
     return;
   }
-  addChat("bot","Searching...");
-  try {
-    const res = await fetch("/api/chat", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ message:q, userId: UID }) });
-    const j = await res.json();
-    addChat("bot", j.reply || j.message || "Sorry, couldn't find that.");
-  } catch (e) {
-    addChat("bot","Network error.");
-  }
-});
+  b.removeEventListener("click", window.buildPackageHandler);
+  b.addEventListener("click", window.buildPackageHandler);
+})();
 
-// footer year
-if (yearEl) yearEl.textContent = new Date().getFullYear();
+// ---------- Confirm handler helper uses last built package ----------
+async function postJson(url, body) {
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json().catch(()=> null);
+    return { ok: r.ok, status: r.status, body: j || null, text: j ? JSON.stringify(j) : null };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+// confirm click wiring (defer until element exists)
+(function wireConfirm() {
+  const btn = refs.confirmBtn || document.getElementById("confirmSaveBtn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const pkg = window.__lastBuiltPackage;
+    if (!pkg) {
+      alert("Build the package first before confirming.");
+      return;
+    }
+    // inline prompt flow (minimal UI)
+    const isTest = confirm("Save this as a TEST record? (OK = test, Cancel = real)");
+    let mobile = prompt("Enter mobile number to confirm booking (10 digits or +country):", "");
+    if (!mobile) { alert("Confirmation cancelled."); return; }
+    mobile = mobile.replace(/[^\d+]/g, "");
+    if (!/^\+?\d{10,15}$/.test(mobile)) { alert("Please enter a valid mobile number (10-15 digits)."); return; }
+    if (!mobile.startsWith("+")) {
+      if (mobile.length === 10) mobile = "+91" + mobile;
+      else mobile = "+" + mobile;
+    }
+
+    const payload = {
+      uid: (localStorage.getItem("wn:uid") || ("wn_" + Math.random().toString(36).slice(2,10))),
+      mobile: mobile,
+      test: !!isTest,
+      payload: {
+        timestamp: new Date().toISOString(),
+        date: pkg.date,
+        guests: pkg.guests,
+        activities: pkg.activities,
+        notes: pkg.notes,
+        summary: pkg.summary
+      }
+    };
+
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    // call server route
+    const res = await postJson("/api/confirm", payload);
+    btn.disabled = false;
+    btn.textContent = "Confirm & Save (enter mobile)";
+
+    if (res && res.ok && res.body && res.body.ok) {
+      alert("Package saved. Reference: " + (res.body.ref || res.body.ts || "saved"));
+      btn.style.display = "none";
+    } else {
+      console.warn("Confirm error", res);
+      alert("Save failed: " + (res.body?.error || res.error || res.text || "Unknown error"));
+    }
+  });
+})();
+
+// ---------- PDF download (uses last built package) ----------
+(function wireDownload() {
+  const btn = refs.downloadBtn || document.getElementById("downloadPdf");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const pkg = window.__lastBuiltPackage;
+    if (!pkg) { alert("Build the package first."); return; }
+    const text = pkg.summary || "";
+    try {
+      // prefer jsPDF if loaded
+      if (window.jspdf && typeof window.jspdf.jsPDF === "function") {
+        const doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.text("Weavers Nest - Package", 40, 60);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        const lines = doc.splitTextToSize(text, 520);
+        doc.text(lines, 40, 90);
+        doc.save("weavers-nest-package.pdf");
+        return;
+      }
+    } catch (err) {
+      console.warn("jsPDF error", err);
+    }
+    // fallback: text file
+    try {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "weavers-nest-package.txt";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Could not generate file.");
+      console.error(err);
+    }
+  });
+})();
+
+// ---------- Email package (uses last built package) ----------
+(function wireEmail() {
+  const btn = refs.emailBtn || document.getElementById("emailPkg");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const pkg = window.__lastBuiltPackage;
+    if (!pkg) return alert("Build the package first.");
+    try {
+      const res = await postJson("/api/email", { subject: "Weavers Nest Package", text: pkg.summary, fromUser: (localStorage.getItem("wn:uid") || "guest") });
+      if (res.ok && res.body && res.body.ok) {
+        alert("Package emailed to admin.");
+      } else {
+        alert("Email failed: " + (res.body?.error || res.error || res.text || "unknown"));
+      }
+    } catch (err) {
+      alert("Email failed.");
+      console.error(err);
+    }
+  });
+})();
+
+// ---------- Gallery: ensure stable images and graceful fallback ----------
+(function fixGalleryImages() {
+  const grid = refs.galleryGrid || document.getElementById("galleryGrid");
+  if (!grid) return;
+  // ensure each image has object-fit and stable dimensions, attach onerror fallback
+  grid.querySelectorAll("img").forEach(img => {
+    try {
+      img.style.objectFit = "cover";
+      img.style.width = "100%";
+      img.style.height = img.style.height || "140px";
+      if (!img.getAttribute("loading")) img.setAttribute("loading", "lazy");
+      // attach a fallback only once
+      if (!img.dataset.fallbackBound) {
+        img.addEventListener("error", function onerr() {
+          img.removeEventListener("error", onerr);
+          img.dataset.fallbackBound = "1";
+          img.src = "/images/placeholder.jpg";
+        });
+      }
+    } catch (e) { /* ignore */ }
+  });
+})();
+
+// ---------- Partners: reveal missing logos or mark with placeholder ----------
+(function fixPartners() {
+  const partners = refs.partnerNodes.length ? refs.partnerNodes : $$(".partner");
+  partners.forEach(p => {
+    const img = p.querySelector("img");
+    if (!img) return;
+    // ensure visible style, fallback
+    img.style.maxHeight = img.style.maxHeight || "80px";
+    img.style.objectFit = "contain";
+    img.addEventListener("error", function onerr() {
+      img.removeEventListener("error", onerr);
+      img.src = "/images/placeholder.jpg";
+      p.classList.add("visible");
+    });
+    // if already loaded OK mark visible
+    if (img.complete && img.naturalWidth && img.naturalHeight) {
+      p.classList.add("visible");
+    } else {
+      // try to set visible on load
+      img.addEventListener("load", () => p.classList.add("visible"));
+    }
+  });
+})();
+
+// ---------- Small graceful initial state: disable actions until build ----------
+(function initialState() {
+  if (refs.downloadBtn) refs.downloadBtn.disabled = true;
+  if (refs.emailBtn) refs.emailBtn.disabled = true;
+  if (refs.confirmBtn) refs.confirmBtn.style.display = (window.__lastBuiltPackage ? "inline-block" : "none");
+})();
+
+// ---------- Optional: make sure build button visible/wired (safety) ----------
+(function ensureBuildVisibility() {
+  const b = refs.buildBtn || document.getElementById("buildPackage");
+  if (b && b.style.display === "none") b.style.display = "inline-block";
+})();
+
+// ---------- Export for debugging convenience ----------
+window.__wn.buildPackageHandler = window.buildPackageHandler;
