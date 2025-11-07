@@ -272,14 +272,84 @@ function buildPackage() {
 if (buildBtn) buildBtn.addEventListener("click", buildPackage);
 
 // ---------- Confirm & Save (robust) ----------
-async function postJson(url, body) {
+/* Lightweight safeFetch: normalizes network and non-2xx errors, reads body once */
+async function safeFetch(url, opts = {}) {
   try {
-    const r = await fetch(url, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
-    const j = await r.json().catch(()=>null);
-    return { ok: r.ok, status: r.status, body: j };
-  } catch (e) { return { ok:false, error: String(e) }; }
+    const res = await fetch(url, opts);
+    const txt = await res.text().catch(()=>'');
+    if (!res.ok) {
+      const err = new Error(`Request failed ${res.status} ${res.statusText}`);
+      err.status = res.status;
+      err.body = txt;
+      throw err;
+    }
+    try { return JSON.parse(txt); } catch (e) { return txt; }
+  } catch (e) {
+    if (!e.status) e.status = 'NETWORK_OR_CORS';
+    throw e;
+  }
 }
 
+/* simple local queue for pending saves */
+const PENDING_KEY = 'wn:pendingSaves_v1';
+function queuePending(payload) {
+  try {
+    const q = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+    q.push({ payload, ts: Date.now() });
+    localStorage.setItem(PENDING_KEY, JSON.stringify(q));
+    console.log('Queued pending save. Length=', q.length);
+  } catch (e) { console.warn('queuePending error', e); }
+}
+function shiftPending() {
+  try {
+    const q = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+    if (!q.length) return null;
+    const item = q.shift();
+    localStorage.setItem(PENDING_KEY, JSON.stringify(q));
+    return item;
+  } catch (e) { console.warn('shiftPending error', e); return null; }
+}
+
+/* saveData: tries to save; on failure queues locally */
+async function saveData(payload) {
+  try {
+    const res = await safeFetch('/api/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    console.log('saveData success', res);
+    return { ok: true, body: res };
+  } catch (err) {
+    console.warn('saveData failed, queued', err);
+    queuePending(payload);
+    return { ok: false, error: err };
+  }
+}
+
+/* pending processor: retry one pending item immediately and then periodically */
+async function processPendingOnce() {
+  const item = shiftPending();
+  if (!item) return;
+  try {
+    await safeFetch('/api/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item.payload)
+    });
+    console.log('Pending save synchronized.');
+  } catch (err) {
+    console.warn('Pending save retry failed; requeueing', err);
+    // requeue at front
+    const q = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]');
+    q.unshift(item);
+    localStorage.setItem(PENDING_KEY, JSON.stringify(q));
+  }
+}
+setTimeout(processPendingOnce, 2000);
+setInterval(processPendingOnce, 20000);
+
+/* Confirm Save button wiring (uses saveData) */
 if (confirmSaveBtn) {
   confirmSaveBtn.addEventListener("click", async () => {
     const pkg = window.__lastBuiltPackage;
@@ -309,15 +379,25 @@ if (confirmSaveBtn) {
     confirmSaveBtn.disabled = true;
     const old = confirmSaveBtn.textContent;
     confirmSaveBtn.textContent = "Saving…";
-    const res = await postJson("/api/confirm", payload);
-    confirmSaveBtn.disabled = false;
-    confirmSaveBtn.textContent = old || "Confirm & Save (enter mobile)";
-    if (res.ok && res.body && res.body.ok) {
-      alert("Saved. Reference: " + (res.body.ref || res.body.ts || "saved"));
-      confirmSaveBtn.style.display = "none";
-    } else {
-      console.warn("Save failed", res);
-      alert("Save failed: " + (res.body?.error || res.error || "unknown"));
+
+    try {
+      const r = await saveData(payload);
+      if (r.ok) {
+        // server returned success (or we saved locally earlier but saveData reports ok)
+        // If server returns an object with ok/ref, show it; otherwise just show a generic saved message.
+        const ref = (r.body && (r.body.ref || r.body.ts)) || '';
+        alert("Saved. Reference: " + (ref || "saved"));
+        confirmSaveBtn.style.display = "none";
+      } else {
+        console.warn("Save attempted but was queued for retry", r.error || r);
+        alert("Save failed — your package is saved locally and will be retried automatically. You can try again later.");
+      }
+    } catch (err) {
+      console.error('Unexpected save error', err);
+      alert("Unexpected error while saving. Check console.");
+    } finally {
+      confirmSaveBtn.disabled = false;
+      confirmSaveBtn.textContent = old || "Confirm & Save (enter mobile)";
     }
   });
 }
@@ -494,6 +574,26 @@ if (chatForm) chatForm.addEventListener("submit", async (e) => {
       }, true);
     }
   } catch (e) { /* silent */ }
+})();
+/* ---------- WhatsApp button (resilient) ---------- */
+(function setupWhatsApp() {
+  const btn = document.getElementById('waBtn');
+  if (!btn) return; // no button in DOM
+  function isMobile(){ return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+  btn.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    const phone = (window.APP && window.APP.contactPhone) || '919999888777';
+    const msg = encodeURIComponent('Hello, I need help');
+    if (isMobile()) {
+      // try app first; fallback to web after short delay
+      location.href = `whatsapp://send?phone=${phone}&text=${msg}`;
+      setTimeout(()=> { location.href = `https://wa.me/${phone}?text=${msg}`; }, 900);
+    } else {
+      const url = `https://wa.me/${phone}?text=${msg}`;
+      const opened = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!opened) location.href = url;
+    }
+  }, { passive: false });
 })();
 
 // footer year
