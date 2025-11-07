@@ -37,6 +37,56 @@ const $$ = (s) => {
     return [];
   }
 };
+// === safeFetchJSON ===
+// Reads response body exactly once and returns parsed JSON or raw text.
+// Usage: const data = await safeFetchJSON('/api/endpoint', { method:'POST', body: JSON.stringify(payload) });
+async function safeFetchJSON(url, options = {}) {
+  const res = await fetch(url, options);
+  const txt = await res.text(); // read the body exactly once
+  if (!res.ok) {
+    const err = new Error(`Request failed ${res.status} ${res.statusText}`);
+    err.status = res.status;
+    err.body = txt;
+    throw err;
+  }
+  try {
+    return JSON.parse(txt);
+  } catch (e) {
+    return txt; // not JSON — return raw text
+  }
+}
+
+// === runtime fetch guard (best-effort) ===
+// Wraps window.fetch so accidental double-reads won't crash the app.
+// It returns a response-like object with async .text() and .json() that both read from the same cached body.
+(function installFetchGuard(){
+  if (!window.fetch) return;
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = function(...args) {
+    return nativeFetch(...args).then(async (res) => {
+      // cache body once
+      let bodyText = '';
+      try {
+        bodyText = await res.clone().text();
+      } catch (e) {
+        bodyText = '';
+      }
+      return {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        headers: res.headers,
+        url: res.url,
+        // read cached body
+        text: async () => bodyText,
+        json: async () => {
+          try { return JSON.parse(bodyText); }
+          catch (err) { throw new Error('Response is not valid JSON: ' + (bodyText || '[empty]')); }
+        }
+      };
+    });
+  };
+})();
 
 const actsEl = $("#activities");
 const summaryEl = $("#summary");
