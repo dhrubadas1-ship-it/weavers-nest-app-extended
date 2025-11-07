@@ -6,81 +6,63 @@
   <title>Weavers Nest – Community Eco Tours</title>
   <meta name="description" content="Village tours, forest tracking, community experiences." />
   <link rel="preload" href="/images/hero.jpg" as="image" />
-  <!-- jsPDF CDN for PDF generation -->
+  <!-- jsPDF CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 
   <style>
-    :root{--brand:#0b7b6f;--accent:#ffc857;--muted:#64748b;--radius:14px}
+    :root{--brand:#0b7b6f;--accent:#ffc857;--muted:#64748b}
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
     body{margin:0;background:#fbfdff;color:#0f172a}
-    a { text-decoration:none }
-    /* HERO */
-    .hero {position:relative;min-height:56vh;display:block;overflow:hidden;background:#081218}
-    .hero-bg {position:absolute;inset:0;background-image:url('/images/hero.jpg');background-size:cover;background-position:top center;filter:brightness(.72)}
-    .hero-empty {height:56vh} /* visual spacer so text isn't inside hero */
-    /* CONTACT BAR (above content) */
+    a{color:inherit}
+    .hero {position:relative;min-height:48vh;overflow:hidden}
+    .hero .bg {position:absolute;inset:0;background-image:url('/images/hero.jpg');background-size:cover;background-position:top center;filter:brightness(.72)}
+    .hero .overlay {position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:18px;color:#fff}
     .contactbar{background:#fff;border-bottom:1px solid #eef2f7}
     .contactwrap{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;display:inline-block}
     .btn.whatsapp{background:#25D366;color:#053015}
     .btn.call{background:var(--accent);color:#1f2937}
     .btn.form{background:var(--brand);color:#fff}
-    /* PAGE WRAP */
     .wrap{max-width:1100px;margin:20px auto;padding:0 16px}
     h1,h2{margin:.2rem 0 .6rem}
-    .muted{color:var(--muted);font-size:0.95rem}
-    /* Tours grid */
+    .muted{color:var(--muted);font-size:.95rem}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
     .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 8px 22px rgba(2,8,20,.06)}
-    /* Planner */
     .panel{background:#fff;border-radius:12px;padding:14px;box-shadow:0 8px 22px rgba(2,8,20,.06)}
-    .panel input, .panel textarea{padding:8px;border:1px solid #e6eef5;border-radius:8px}
     #activities{display:grid;gap:10px;margin-top:8px}
     .card-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid #eef2f7}
     .badge{padding:6px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e6eef5;cursor:pointer}
     .badge.is-on{background:var(--brand);color:#fff;border-color:var(--brand)}
-    /* Gallery */
     .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:8px}
     .g-item{position:relative;border-radius:10px;overflow:hidden;background:#f7fafc}
     .g-item img{width:100%;height:140px;object-fit:cover;display:block}
     .g-item .label{position:absolute;left:0;right:0;bottom:0;padding:8px;color:#fff;background:linear-gradient(180deg,transparent,rgba(0,0,0,.6));font-weight:600}
-    /* Modal */
     dialog{border:0;border-radius:12px;padding:0}
     dialog img{width:100%;height:auto;display:block}
-    .modal-close{position:absolute;top:8px;right:8px;border:0;background:#fff;border-radius:999px;padding:6px;cursor:pointer}
-    /* Partners */
     .partners{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px}
     .partner img{max-height:80px;object-fit:contain;background:#fff;padding:6px;border-radius:8px}
     .partner.nabard img{max-height:110px}
-    /* Chat */
     .chat-log{height:240px;overflow:auto;padding:12px;background:#f1f5f9;border-radius:8px}
     .msg{margin-bottom:8px}
-    .me{color:#0f172a}
-    .bot{color:var(--brand)}
-    /* small helpers */
-    .small-muted{font-size:12px;color:var(--muted)}
     footer{padding:18px 16px;color:#475569}
+    pre#packageOut{white-space:pre-wrap;background:#f8fafc;padding:10px;border-radius:8px}
+    .small-muted{font-size:12px;color:var(--muted)}
   </style>
 </head>
 <body>
-  <!-- HERO background only -->
   <header class="hero" role="banner">
-    <div class="hero-bg" aria-hidden="true"></div>
-    <div class="hero-empty"></div>
+    <div class="bg" aria-hidden="true"></div>
+    <div class="overlay"></div>
   </header>
 
-  <!-- CONTACT BAR (separate & above content) -->
   <div class="contactbar">
     <div class="contactwrap">
-      <a id="waBtn" class="btn whatsapp" target="_blank" rel="noopener"
-         href="https://wa.me/919678219052?text=Hi!%20I%20am%20interested%20in%20village%20tours%20%2F%20forest%20tracking.%20Please%20share%20details.">Chat on WhatsApp</a>
+      <a id="waBtn" class="btn whatsapp" target="_blank" rel="noopener">Chat on WhatsApp</a>
       <a id="callBtn" class="btn call" href="tel:+919678219052">Call Now</a>
-      <a id="googleFormBtn" class="btn form" target="_blank" rel="noopener"
-         href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=dialog">Book via Google Form</a>
+      <a id="googleFormBtn" class="btn form" target="_blank" rel="noopener" href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=dialog">Book via Google Form</a>
     </div>
   </div>
 
-  <!-- NOW: textual intro (moved below contact bar) -->
   <main class="wrap" role="main">
     <div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 8px 20px rgba(2,8,20,.04)">
       <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Community Eco-Tourism • Assam & Arunachal</div>
@@ -88,10 +70,8 @@
       <p class="muted">Experience Boro, Nyshi, Mising and Garo cultural trails, river days, local food and forest walks.</p>
     </div>
 
-    <!-- Tours -->
     <section id="tours" aria-labelledby="toursHeading">
       <h2 id="toursHeading">Village Tours</h2>
-      <p class="muted">Each village option is a separate curated visit with local hosts.</p>
       <div class="grid" role="list">
         <article class="card" role="listitem"><h3>Boro Village</h3><p>Handloom, rice-beer demo, courtyard songs.</p></article>
         <article class="card" role="listitem"><h3>Nyshi Village</h3><p>Cane & bamboo craft lane, forest edge trek.</p></article>
@@ -100,7 +80,6 @@
       </div>
     </section>
 
-    <!-- Planner -->
     <section id="plan" style="margin-top:20px">
       <h2>Build Your Day</h2>
       <div class="panel">
@@ -119,15 +98,12 @@
           <button id="confirmSaveBtn" class="btn" style="background:var(--brand);color:#fff;display:none">Confirm & Save (enter mobile)</button>
           <button id="downloadPdf" class="btn">Download PDF</button>
           <button id="emailPkg" class="btn">Email Package to Admin</button>
-          <a id="googleFormBtnBottom" class="btn form" target="_blank" rel="noopener"
-             href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=dialog">Book via Google Form</a>
         </div>
 
-        <pre id="packageOut" style="white-space:pre-wrap;margin-top:12px;background:#f8fafc;padding:10px;border-radius:8px"></pre>
+        <pre id="packageOut"></pre>
       </div>
     </section>
 
-    <!-- Gallery -->
     <section id="gallery" style="margin-top:20px">
       <h2>Photo Gallery</h2>
       <p class="muted">Tap a photo to preview — name shown on hover.</p>
@@ -146,7 +122,6 @@
       </dialog>
     </section>
 
-    <!-- Partners -->
     <section id="partners" style="margin-top:20px">
       <h2>Partners & Sponsors</h2>
       <div class="partners" role="list">
@@ -156,7 +131,6 @@
       </div>
     </section>
 
-    <!-- Chat -->
     <section id="chatSection" style="margin-top:20px">
       <h2>Ask the Guide</h2>
       <div class="panel">
@@ -177,7 +151,6 @@
   <footer>
     <div class="wrap">
       <small>© <span id="year"></span> Weavers Nest • Community-led eco-tourism</small>
-      <div style="margin-top:8px"><img src="/images/NABARD.png" alt="NABARD" style="max-height:44px" onerror="this.onerror=null;this.src='/images/placeholder.jpg'"/></div>
     </div>
   </footer>
 
