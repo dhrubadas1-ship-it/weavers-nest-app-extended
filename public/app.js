@@ -27,6 +27,47 @@ const $ = (s) => {
     return null;
   }
 };
+// ===== Make Response.text() and Response.json() idempotent (prevent double-read errors) =====
+(function makeResponseReadsSafe(){
+  try {
+    // use WeakMap so cached body doesn't prevent GC
+    const bodyCache = new WeakMap();
+    const origText = Response.prototype.text;
+    const origJson = Response.prototype.json;
+
+    // Override text()
+    Response.prototype.text = function() {
+      // if cached, return it
+      if (bodyCache.has(this)) return Promise.resolve(bodyCache.get(this));
+      // otherwise call original, cache result, return it
+      return origText.call(this).then(txt => {
+        try { bodyCache.set(this, txt); } catch(e){ /* ignore if cannot set */ }
+        return txt;
+      });
+    };
+
+    // Override json()
+    Response.prototype.json = function() {
+      // if cached, try parse cached text
+      if (bodyCache.has(this)) {
+        const cached = bodyCache.get(this);
+        try { return Promise.resolve(JSON.parse(cached)); }
+        catch (err) { return Promise.reject(new Error('Response is not valid JSON: ' + (cached || '[empty]'))); }
+      }
+      // otherwise read text once and parse
+      return origText.call(this).then(txt => {
+        try { bodyCache.set(this, txt); } catch(e){ /* ignore */ }
+        try { return JSON.parse(txt); }
+        catch (err) { throw new Error('Response is not valid JSON: ' + (txt || '[empty]')); }
+      });
+    };
+
+    console.log('Response.prototype.text/json patched — double-read safe.');
+  } catch (err) {
+    console.warn('Could not patch Response.prototype safely:', err);
+  }
+})();
+
 
 const $$ = (s) => {
   try {
