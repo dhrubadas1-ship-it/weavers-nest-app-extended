@@ -316,6 +316,76 @@ if (chatForm) chatForm.addEventListener("submit", async (e) => {
     addChat("bot", j.reply || j.message || j.output || "Sorry, couldn't find that.");
   } catch(e) { addChat("bot","Network error."); }
 });
+// ===== Minimal UI patch: clone header Google Form button into the Build panel =====
+(function attachFormClone() {
+  try {
+    const headerBtn = document.getElementById('googleFormBtn'); // header button (exists in index.html)
+    if (!headerBtn) return; // nothing to do
+
+    // create clone to place inside the plan controls
+    const clone = headerBtn.cloneNode(true);
+    clone.id = 'googleFormClone';
+    // keep styles consistent: ensure it's a visible inline block near buttons
+    clone.style.display = 'inline-block';
+    clone.style.marginLeft = '6px';
+
+    // find the build controls container (the sibling of build button)
+    const buildBtnEl = document.getElementById('buildPackage');
+    if (buildBtnEl && buildBtnEl.parentNode) {
+      // insert clone after the build button group (append to same parent)
+      buildBtnEl.parentNode.insertBefore(clone, buildBtnEl.nextSibling);
+    } else {
+      // fallback: append near packageOut area
+      const panel = document.querySelector('#plan .panel');
+      if (panel) panel.appendChild(clone);
+    }
+
+    // if the original used target/_blank etc., keep them
+    clone.setAttribute('rel', 'noopener');
+
+    // Accessibility: ensure role & title copied
+    if (!clone.getAttribute('aria-label')) clone.setAttribute('aria-label', 'Book via Google Form');
+
+    // Optional: ensure cloned link opens in new tab
+    clone.addEventListener('click', (e) => {
+      // nothing special - preserve original behaviour
+    });
+  } catch (err) {
+    console.warn('Form clone failed', err);
+  }
+})();
+
+// ===== Small extra defensive guard for PDF / Email buttons =====
+(function strengthenGuards() {
+  try {
+    const dp = document.getElementById('downloadPdf');
+    const em = document.getElementById('emailPkg');
+
+    const guardWarn = (actionName) => {
+      alert(`${actionName} — please build the package first.`);
+    };
+
+    if (dp) {
+      dp.addEventListener('click', (ev) => {
+        if (!window.__lastBuiltPackage) {
+          ev.preventDefault();
+          guardWarn('Download PDF');
+          return;
+        }
+        // otherwise original handler proceeds
+      }, true);
+    }
+    if (em) {
+      em.addEventListener('click', (ev) => {
+        if (!window.__lastBuiltPackage) {
+          ev.preventDefault();
+          guardWarn('Email Package');
+          return;
+        }
+      }, true);
+    }
+  } catch (e) { /* silent */ }
+})();
 
 // footer year
 if (yearEl) yearEl.textContent = new Date().getFullYear();
