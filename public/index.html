@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Weavers Nest • Sonitpur, Assam</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">WN</div>
+      <div>
+        <div class="title">Weavers Nest</div>
+        <div class="subtitle">Community-based rural tourism • Sonitpur, Assam</div>
+      </div>
+    </div>
+    <a class="cta" target="_blank" rel="noreferrer noopener"
+       href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=header">
+      Book Now
+    </a>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <img src="/images/hero.jpg" alt="Weavers Nest landscape" />
+      <div class="hero-text">
+        <h1>Slow travel in tribal Assam</h1>
+        <p>Village tours, birding in Nameri, rafting, jeep safaris in Pakke, handloom visits, and riverside picnics.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Choose date & guests</div>
+            <div class="grid">
+              <label>Date <input id="date" type="date" /></label>
+              <label>Guests <input id="guests" type="number" min="1" max="10" value="2" /></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Pick activities</div>
+            <div id="activities" class="cards"></div>
+            <textarea id="notes" rows="3" placeholder="Notes (e.g., lunch request, elder-friendly pace)"></textarea>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Review & Share</div>
+            <div id="summary" class="summary"></div>
+            <div class="row">
+              <button id="buildPackage" class="cta alt">Get Custom Package</button>
+              <a class="cta" target="_blank" rel="noreferrer noopener"
+                href="https://docs.google.com/forms/d/e/1FAIpQLScU0QK_QSIR3etRJDKjnxUHB8Un0VEzdcKyiNjO2RADOcFBBQ/viewform?usp=header">
+                Book via Google Form
+              </a>
+              <button id="downloadChat" class="cta alt2">Download Transcript (JSON)</button>
+              <button id="downloadPdf" class="cta alt2">Download PDF</button>
+              <button id="emailPkg" class="cta alt">Email Package to Admin</button>
+            </div>
+            <div class="row">
+              <input id="webhookUrl" placeholder="Paste Google Sheets Webhook URL (Apps Script)" />
+              <button id="saveWebhook" class="badge">Save Webhook</button>
+            </div>
+            <div id="packageOut" class="package"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Partners & Sponsors</h2>
+      <div class="sponsors">
+        <img src="/images/sponsor1.svg" alt="Sponsor 1" />
+        <img src="/images/sponsor2.svg" alt="Sponsor 2" />
+        <img src="/images/sponsor3.svg" alt="Sponsor 3" />
+        <img src="/images/sponsor4.svg" alt="Sponsor 4" />
+      </div>
+      <div class="hint">Replace these with partner logos (SVG/PNG). Click to open their sites—just wrap each image with a link.</div>
+    </section>
+
+    <section class="card">
+      <div class="chat-header">
+        <h2>Ask Weavers Nest</h2>
+        <input id="userId" placeholder="Your name or email (optional)" />
+      </div>
+      <div id="chat" class="chat"></div>
+      <div class="chat-controls">
+        <button id="micBtn" title="Voice input">🎤</button>
+        <input id="chatInput" placeholder="Ask about timings, seasons, safety…" />
+        <button id="sendBtn">Send</button>
+      </div>
+      <div class="hint">Answers come only from the official Weavers Nest document.</div>
+    </section>
+  </main>
+
+  <footer class="footer">© <span id="yr"></span> Weavers Nest • NABARD Supported</footer>
+  <script src="/app.js"></script>
+</body>
+</html>

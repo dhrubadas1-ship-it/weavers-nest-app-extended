@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/chat.mjs",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/package.mjs",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/pdf.mjs",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/email.mjs",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/chat",
+      "dest": "/api/chat.mjs"
+    },
+    {
+      "src": "/api/package",
+      "dest": "/api/package.mjs"
+    },
+    {
+      "src": "/api/pdf",
+      "dest": "/api/pdf.mjs"
+    },
+    {
+      "src": "/api/email",
+      "dest": "/api/email.mjs"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
+}
