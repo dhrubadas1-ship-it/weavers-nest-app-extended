@@ -36,6 +36,85 @@ const yearEl = $("#year");
 
 let selected = new Set();
 let UID = null;
+// === Reactivate Build Custom Package (drop-in) ===
+(function activateBuildBtn(){
+  if (!buildBtn) return console.warn("buildPackage button not found");
+  // remove any old handler to avoid duplicates
+  buildBtn.removeEventListener?.("click", buildBtn._handler);
+
+  const handler = () => {
+    const date = (document.getElementById("date")?.value) || "";
+    const guests = parseInt(document.getElementById("guests")?.value || "1", 10);
+    const notes = (document.getElementById("notes")?.value || "").trim();
+
+    // collect activities from your selected Set (or fallback)
+    let activities = [];
+    if (window.selected && typeof window.selected.forEach === "function") {
+      activities = Array.from(window.selected);
+    } else {
+      // fallback: badges with .is-on
+      activities = Array.from(document.querySelectorAll("#activities .badge.is-on")).map(b => {
+        const parent = b.closest(".card-item");
+        return parent ? (parent.dataset?.id || (parent.innerText||"").split("\n")[0].trim()) : (b.innerText||"").trim();
+      }).filter(Boolean);
+    }
+
+    // map activity ids to names if ACTIVITIES exists
+    let activityNames = "None";
+    if (Array.isArray(window.ACTIVITIES) && activities.length) {
+      activityNames = activities.map(id => {
+        const a = window.ACTIVITIES.find(x => x.id === id || x.name === id || (x.name && id && x.name.toLowerCase().includes(String(id).toLowerCase())));
+        return a ? a.name : id;
+      }).join(" • ");
+    } else if (activities.length) {
+      activityNames = activities.join(" • ");
+    }
+
+    const summaryText = `Date: ${date || "Not set"}
+Guests: ${guests}
+Activities: ${activityNames}
+Notes: ${notes || "-"}
+
+Download the PDF and share it with Manjeet: +91 96782 19052.`;
+
+    // write to UI
+    if (packageOut) {
+      packageOut.textContent = summaryText;
+      // make sure visible
+      packageOut.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else if (summaryEl) {
+      summaryEl.textContent = summaryText;
+      summaryEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    // enable actions
+    if (confirmSaveBtn) confirmSaveBtn.style.display = "inline-block";
+    if (downloadPdfBtn) downloadPdfBtn.disabled = false;
+    if (emailPkgBtn) emailPkgBtn.disabled = false;
+
+    // store last built package
+    window.__lastBuiltPackage = {
+      date,
+      guests,
+      activities,
+      notes,
+      summary: summaryText,
+      ts: new Date().toISOString()
+    };
+
+    // slight visual confirmation (brief)
+    try {
+      buildBtn.classList.add("built");
+      setTimeout(()=> buildBtn.classList.remove("built"), 900);
+    } catch {}
+
+    console.info("Package built:", window.__lastBuiltPackage);
+  };
+
+  // attach and save reference so we can remove later
+  buildBtn.addEventListener("click", handler);
+  buildBtn._handler = handler;
+})();
 
 // ---------- UID ----------
 function getOrCreateUID() {
