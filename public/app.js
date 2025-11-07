@@ -18,8 +18,26 @@ const ACTIVITIES = [
 ];
 
 // ---------- Helpers ----------
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => Array.from(document.querySelectorAll(s));
+const $ = (s) => {
+  try {
+    if (!s || typeof s !== "string" || s.trim() === "") return null;
+    return document.querySelector(s);
+  } catch (err) {
+    console.warn("Bad selector:", s, err);
+    return null;
+  }
+};
+
+const $$ = (s) => {
+  try {
+    if (!s || typeof s !== "string" || s.trim() === "") return [];
+    return Array.from(document.querySelectorAll(s));
+  } catch (err) {
+    console.warn("Bad selectorAll:", s, err);
+    return [];
+  }
+};
+
 const actsEl = $("#activities");
 const summaryEl = $("#summary");
 const buildBtn = $("#buildPackage");
