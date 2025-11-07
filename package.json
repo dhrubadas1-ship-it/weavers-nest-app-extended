@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "groq-sdk": "^0.6.0",
-    "mini-search": "^6.3.0",
+    "minisearch": "^6.3.0",
     "nodemailer": "^6.9.13",
     "pdf-lib": "^1.17.1"
   }

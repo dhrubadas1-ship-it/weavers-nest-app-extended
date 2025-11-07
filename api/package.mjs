@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import MiniSearch from "mini-search";
+import MiniSearch from "minisearch";
 import Groq from "groq-sdk";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
