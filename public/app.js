@@ -582,7 +582,7 @@ if (chatForm) chatForm.addEventListener("submit", async (e) => {
   function isMobile(){ return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
   btn.addEventListener('click', function (ev) {
     ev.preventDefault();
-    const phone = (window.APP && window.APP.contactPhone) || '919999888777';
+    const phone = (window.APP && window.APP.contactPhone) || '919678219052';
     const msg = encodeURIComponent('Hello, I need help');
     if (isMobile()) {
       // try app first; fallback to web after short delay
